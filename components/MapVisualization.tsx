@@ -14,11 +14,30 @@ const styles: { [key: string]: React.CSSProperties } = {
     overflow: 'hidden',
     border: '1px solid #4b5563',
   },
-  path: {
+  // Style for the path that has been completed
+  completedPath: {
     stroke: '#6366f1',
-    strokeDasharray: '2, 2',
+    strokeWidth: 1,
     fill: 'none',
-    pointerEvents: 'none', // Visual path doesn't capture events
+    pointerEvents: 'none',
+    transition: 'stroke-width 0.2s ease-in-out',
+  },
+  // Style for the currently active path segment
+  activePath: {
+    stroke: '#a5b4fc',
+    strokeWidth: 1.5,
+    fill: 'none',
+    pointerEvents: 'none',
+    strokeDasharray: '4, 4',
+    animation: 'dash-flow 1s linear infinite',
+  },
+  // Style for the future, untraveled path segments
+  futurePath: {
+    stroke: '#4b5563',
+    strokeDasharray: '2, 2',
+    strokeWidth: 0.8,
+    fill: 'none',
+    pointerEvents: 'none',
     transition: 'stroke-width 0.2s ease-in-out',
   },
   point: {
@@ -91,6 +110,11 @@ const keyframes = `
     0% { r: 1.5; }
     50% { r: 2.2; }
     100% { r: 1.5; }
+  }
+  @keyframes dash-flow {
+    to {
+      stroke-dashoffset: -8;
+    }
   }
 `;
 
@@ -179,6 +203,23 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ history, activeEven
             const isHovered = index === hoveredSegmentIndex;
             const segmentPathData = `M ${startPoint.x} ${startPoint.y} L ${endPoint.x} ${endPoint.y}`;
 
+            let pathStyle;
+            if (activeEventIndex !== null) {
+              if (index < activeEventIndex - 1) {
+                // Path segments that have been completed
+                pathStyle = styles.completedPath;
+              } else if (index === activeEventIndex - 1) {
+                // The currently active path segment
+                pathStyle = styles.activePath;
+              } else {
+                // Future path segments
+                pathStyle = styles.futurePath;
+              }
+            } else {
+              // Default if no active index is set
+              pathStyle = styles.futurePath;
+            }
+
             return (
               <g key={`segment-group-${index}`}>
                 {/* Hitbox path: thicker and transparent for easier interaction */}
@@ -194,12 +235,13 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({ history, activeEven
                   onMouseLeave={() => setHoveredSegmentIndex(null)}
                   onClick={() => onPointClick(index + 1)} // Activate the destination event
                 />
-                {/* Visible path */}
+                {/* Visible path with new dynamic styling */}
                 <path
                   d={segmentPathData}
                   style={{
-                    ...styles.path,
-                    strokeWidth: isHovered ? 1.5 : 0.8,
+                    ...pathStyle,
+                    // Apply hover effect by slightly increasing stroke width
+                    strokeWidth: isHovered ? (pathStyle.strokeWidth || 0.8) * 1.5 : pathStyle.strokeWidth,
                   }}
                 />
               </g>

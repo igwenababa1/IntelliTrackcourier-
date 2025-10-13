@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import TrackingInput from './TrackingInput';
 import QRCodeScanner from './QRCodeScanner';
 import ServiceShowcase from './ServiceShowcase';
+import Icon from './Icon';
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
@@ -29,9 +30,29 @@ const styles: { [key: string]: React.CSSProperties } = {
     maxWidth: '500px',
   },
   error: {
-    color: '#f87171',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    color: '#fca5a5',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    padding: '0.75rem 1rem',
+    borderRadius: '0.5rem',
     marginTop: '1.5rem',
+    width: '100%',
+    boxSizing: 'border-box',
+    animation: 'shake 0.5s ease-in-out',
+  },
+  errorText: {
     fontWeight: 500,
+    margin: 0,
+    textAlign: 'left',
+  },
+  errorIcon: {
+    width: '20px',
+    height: '20px',
+    color: '#f87171',
+    flexShrink: 0,
   }
 };
 
@@ -61,7 +82,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onTrack, error, isExiting
           magic.
         </p>
         <TrackingInput onTrack={onTrack} onScanClick={() => setIsScanning(true)} />
-        {error && <p style={styles.error}>{error}</p>}
+        {error && (
+          <div style={styles.error} role="alert">
+            <Icon name="alert-triangle" style={styles.errorIcon} />
+            <p style={styles.errorText}>{error}</p>
+          </div>
+        )}
         
         {recentShipments.length > 0 && (
           <div className="recent-shipments-container">

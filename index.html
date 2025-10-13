@@ -10,7 +10,10 @@
         "react": "https://aistudiocdn.com/react@^19.2.0",
         "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
         "react/": "https://aistudiocdn.com/react@^19.2.0/",
-        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.24.0"
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.24.0",
+        "jspdf": "https://aistudiocdn.com/jspdf@^2.5.1",
+        "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1",
+        "qrcode": "https://aistudiocdn.com/qrcode@^1.5.3"
       }
     }
     </script>
@@ -430,6 +433,102 @@
         0% { transform: scale(0); }
         80% { transform: scale(1.2); }
         100% { transform: scale(1); }
+      }
+      
+      /* NEW: Shake animation for errors */
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+      }
+      
+      /* NEW: AR VIEW STYLES */
+      .ar-view-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 4000;
+        animation: fadeIn 0.3s ease;
+        overflow: hidden;
+      }
+      .ar-video-bg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: translate(-50%, -50%);
+        z-index: -1;
+      }
+      .ar-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        color: white;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      }
+      .ar-close-button {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: rgba(0,0,0,0.4);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        cursor: pointer;
+        padding: 0.75rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+      }
+      .package-3d-container {
+        perspective: 800px;
+        width: 150px;
+        height: 150px;
+        margin-bottom: 2rem;
+      }
+      .package-3d {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        animation: rotate-box 15s infinite linear;
+      }
+      .package-face {
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        background-color: rgba(210, 180, 140, 0.9); /* Cardboard color */
+        border: 1px solid #a07d5a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: #5d4037;
+      }
+      .front  { transform: rotateY(  0deg) translateZ(75px); }
+      .back   { transform: rotateY(180deg) translateZ(75px); }
+      .right  { transform: rotateY( 90deg) translateZ(75px); }
+      .left   { transform: rotateY(-90deg) translateZ(75px); }
+      .top    { transform: rotateX( 90deg) translateZ(75px); }
+      .bottom { transform: rotateX(-90deg) translateZ(75px); }
+      
+      @keyframes rotate-box {
+        from { transform: rotateY(0deg) rotateX(-20deg); }
+        to   { transform: rotateY(360deg) rotateX(-20deg); }
       }
     </style>
 </head>

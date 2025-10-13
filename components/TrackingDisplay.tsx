@@ -6,6 +6,8 @@ import TimelineItem from './TimelineItem';
 import useSound from '../hooks/useSound';
 import Icon, { IconName } from './Icon';
 import { CONFIRM_SOUND } from './sounds';
+import ShippingLabel from './ShippingLabel';
+import ARView from './ARView';
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
@@ -63,6 +65,25 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#d1d5db',
     fontWeight: 500,
     margin: 0,
+  },
+  actionsContainer: {
+    display: 'flex',
+    gap: '0.75rem',
+    flexWrap: 'wrap',
+  },
+  actionButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 1rem',
+    fontSize: '1rem',
+    fontWeight: 500,
+    backgroundColor: '#374151',
+    color: 'white',
+    border: '1px solid #4b5563',
+    borderRadius: '0.5rem',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s, border-color 0.2s, transform 0.1s',
   },
   grid: {
     display: 'grid',
@@ -210,6 +231,9 @@ const TrackingDisplay = forwardRef<TrackingDisplayHandle, TrackingDisplayProps>(
   const [selectedDeliveryOption, setSelectedDeliveryOption] = useState<string>(details.deliveryPreference);
   const [confirmationMessage, setConfirmationMessage] = useState<string>('');
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [isLabelVisible, setIsLabelVisible] = useState(false);
+  const [isARViewVisible, setIsARViewVisible] = useState(false);
+
   
   const [playConfirmSound] = useSound(CONFIRM_SOUND, 0.5);
   
@@ -272,6 +296,23 @@ const TrackingDisplay = forwardRef<TrackingDisplayHandle, TrackingDisplayProps>(
     setConfirmationMessage(`Preference updated to "${selectedDeliveryOption}"!`);
     setTimeout(() => setConfirmationMessage(''), 3000);
   };
+  
+  const handleButtonInteraction = (e: React.MouseEvent<HTMLButtonElement>, action: 'over' | 'out' | 'down' | 'up') => {
+    const target = e.currentTarget;
+    if (action === 'over') {
+        target.style.backgroundColor = '#4b5563';
+        target.style.borderColor = '#6366f1';
+    } else if (action === 'out') {
+        target.style.backgroundColor = '#374151';
+        target.style.borderColor = '#4b5563';
+        target.style.transform = 'scale(1)';
+    } else if (action === 'down') {
+        target.style.transform = 'scale(0.95)';
+    } else if (action === 'up') {
+        target.style.transform = 'scale(1)';
+    }
+  };
+
 
   return (
     <div style={styles.container}>
@@ -289,12 +330,38 @@ const TrackingDisplay = forwardRef<TrackingDisplayHandle, TrackingDisplayProps>(
       <header style={styles.header}>
         <h1 style={styles.trackingId}>Tracking ID: {details.id}</h1>
         <div style={styles.infoHeader}>
-            <div style={styles.statusContainer} className={details.status !== 'Delivered' ? 'status-pulse' : ''}>
+            <div style={{...styles.statusContainer, flexShrink: 0}} className={details.status !== 'Delivered' ? 'status-pulse' : ''}>
                 <p style={styles.status}>{details.status}</p>
             </div>
-            <div style={styles.etaContainer}>
+            <div style={{...styles.etaContainer, flexShrink: 0}}>
                 <Icon name="calendar" style={styles.etaIcon} />
-                <p style={styles.etaText}>Estimated Delivery: {details.estimatedDelivery}</p>
+                <p style={styles.etaText}>Est: {details.estimatedDelivery}</p>
+            </div>
+            <div style={{...styles.actionsContainer, marginLeft: 'auto'}}>
+                 <button
+                  onClick={() => setIsARViewVisible(true)}
+                  style={styles.actionButton}
+                  onMouseOver={(e) => handleButtonInteraction(e, 'over')}
+                  onMouseOut={(e) => handleButtonInteraction(e, 'out')}
+                  onMouseDown={(e) => handleButtonInteraction(e, 'down')}
+                  onMouseUp={(e) => handleButtonInteraction(e, 'up')}
+                  title="View in AR"
+                >
+                  <Icon name="camera" style={{width: '20px', height: '20px'}}/>
+                  <span>View in AR</span>
+                </button>
+                <button
+                  onClick={() => setIsLabelVisible(true)}
+                  style={styles.actionButton}
+                  onMouseOver={(e) => handleButtonInteraction(e, 'over')}
+                  onMouseOut={(e) => handleButtonInteraction(e, 'out')}
+                  onMouseDown={(e) => handleButtonInteraction(e, 'down')}
+                  onMouseUp={(e) => handleButtonInteraction(e, 'up')}
+                  title="Generate Shipping Label"
+                >
+                  <Icon name="printer" style={{width: '20px', height: '20px'}}/>
+                  <span>Generate Label</span>
+                </button>
             </div>
         </div>
       </header>
@@ -329,11 +396,11 @@ const TrackingDisplay = forwardRef<TrackingDisplayHandle, TrackingDisplayProps>(
             <h2 style={styles.cardTitle}>Shipment Details</h2>
             <p style={styles.detailText}>
               <strong>From:</strong> 
-              <span className="clickable-detail" onClick={() => setActiveEventIndex(0)}> {details.origin}</span>
+              <span className="clickable-detail" onClick={() => setActiveEventIndex(0)}> {details.origin.cityStateZip}</span>
             </p>
             <p style={styles.detailText}>
               <strong>To:</strong> 
-              <span className="clickable-detail" onClick={() => setActiveEventIndex(details.history.length - 1)}> {details.destination}</span>
+              <span className="clickable-detail" onClick={() => setActiveEventIndex(details.history.length - 1)}> {details.destination.cityStateZip}</span>
             </p>
             <p style={{...styles.detailText, marginTop: '1rem'}}>
               <strong>Contents:</strong> {details.contents}
@@ -393,6 +460,8 @@ const TrackingDisplay = forwardRef<TrackingDisplayHandle, TrackingDisplayProps>(
             </div>
         </div>
       </div>
+      {isLabelVisible && <ShippingLabel details={details} onClose={() => setIsLabelVisible(false)} />}
+      {isARViewVisible && <ARView onClose={() => setIsARViewVisible(false)} />}
     </div>
   );
 });

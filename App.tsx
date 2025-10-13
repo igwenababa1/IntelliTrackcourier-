@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import WelcomeScreen from './components/WelcomeScreen';
 import TrackingDisplay, { TrackingDisplayHandle } from './components/TrackingDisplay';
-import { PackageDetails, TrackingEvent } from './types';
+import { PackageDetails, TrackingEvent, Address } from './types';
 import AppBackground from './components/AppBackground';
 import VoiceCommandButton, { VoiceCommand } from './components/VoiceCommandButton';
 import ChatAssistant from './components/ChatAssistant';
@@ -135,8 +135,18 @@ const App: React.FC = () => {
           id: id,
           status: initialHistory[initialHistory.length - 1].status,
           estimatedDelivery: 'June 28, 2024',
-          origin: 'Los Angeles, CA, USA',
-          destination: 'New York, NY, USA',
+          origin: {
+            name: 'IntelliTrack Fulfillment',
+            street: '123 Logistics Lane',
+            cityStateZip: 'Los Angeles, CA 90001',
+            country: 'USA'
+          },
+          destination: {
+            name: 'Jane Doe',
+            street: '456 Recipient Road, Apt 7B',
+            cityStateZip: 'New York, NY 10001',
+            country: 'USA'
+          },
           contents: 'A limited edition pair of designer sneakers in a vibrant box',
           deliveryPreference: 'Leave at door',
           availableDeliveryOptions: ['Leave at door', 'Signature required', 'Hold at location'],
