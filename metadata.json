@@ -1,0 +1,8 @@
+{
+  "name": "IntelliTrack Global Courier",
+  "description": "A shipping and tracking service.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

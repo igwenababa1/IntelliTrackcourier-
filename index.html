@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IntelliTrack Global Courier</title>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://aistudiocdn.com/react@^19.2.0",
+        "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.24.0"
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --background-color: #111827;
+        --primary-color: #4f46e5;
+        --text-color: #e5e7eb;
+        --text-secondary-color: #9ca3af;
+        --input-bg-color: #1f2937;
+        --border-color: #4b5563;
+        --success-color: #34d399;
+      }
+      body {
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        overflow: hidden; /* Prevent scrollbars from the animation */
+      }
+      #root {
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+      .app-container {
+        width: 100%;
+        max-width: 600px;
+        padding: 6rem 2rem 2rem; /* Adjusted padding-top for fixed header */
+        text-align: center;
+      }
+      h1 {
+        font-weight: 700;
+        color: white;
+      }
+      p {
+        color: var(--text-secondary-color);
+        font-size: 1.125rem;
+        margin-bottom: 2rem;
+      }
+
+      /* Header Styling */
+      .app-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-sizing: border-box;
+        background-color: rgba(17, 24, 39, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(75, 85, 99, 0.5);
+        z-index: 100;
+      }
+      .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .header-icon svg {
+        width: 40px;
+        height: 40px;
+        color: #a5b4fc;
+      }
+      .brand-text-container {
+        display: flex;
+        flex-direction: column;
+      }
+      .brand-text {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: white;
+        line-height: 1.2;
+      }
+      .brand-tagline {
+        font-size: 0.75rem;
+        color: var(--text-secondary-color);
+        line-height: 1.2;
+      }
+      .header-nav {
+        display: flex;
+        gap: 1.5rem;
+      }
+      .header-nav a {
+        color: var(--text-color);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1rem;
+        transition: color 0.2s ease-in-out;
+        cursor: pointer;
+      }
+      .header-nav a:hover {
+        color: white;
+      }
+
+
+      /* Background Styling */
+      .app-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        overflow: hidden;
+      }
+      .app-background::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(17, 24, 39, 0.7); /* Dark overlay */
+        z-index: 1;
+      }
+      .bg-slider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 400%; /* 2x original width to allow for seamless looping */
+        display: flex;
+      }
+      .bg-slider.planes {
+        animation: horizontal-slide 80s linear infinite;
+        z-index: -2;
+      }
+       .bg-slider.containers {
+        animation: horizontal-slide 60s linear infinite;
+        z-index: -1;
+      }
+      .bg-slide {
+        width: 25%; /* Each image takes up a quarter of the slider */
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+      }
+      @keyframes horizontal-slide {
+        0% { transform: translateX(0%); }
+        100% { transform: translateX(-50%); }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out forwards;
+      }
+      .fade-out {
+        animation: fadeOut 0.5s ease-in-out forwards;
+      }
+      @keyframes highlight-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+      }
+      .highlight {
+        animation: highlight-pulse 1.5s ease-out;
+      }
+       @keyframes text-shimmer {
+        0% { background-position: -200% center; }
+        100% { background-position: 200% center; }
+      }
+
+      /* NEW: Flip Card Animation */
+      .flip-card {
+        background-color: transparent;
+        width: 100%;
+        height: 100%;
+        perspective: 1000px;
+        cursor: pointer;
+      }
+      .flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+      }
+      .flip-card.flipped .flip-card-inner {
+        transform: rotateY(180deg);
+      }
+      .flip-card-front, .flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+      .flip-card-back {
+        background-color: #374151;
+        transform: rotateY(180deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        box-sizing: border-box;
+      }
+      
+      /* NEW: Status Pulse Animation */
+      @keyframes status-pulse {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(134, 239, 172, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(134, 239, 172, 0);
+        }
+      }
+      .status-pulse {
+         border-radius: 9999px;
+         animation: status-pulse 2s infinite;
+      }
+      
+      /* NEW: Clickable Detail Styling */
+      .clickable-detail {
+        cursor: pointer;
+        transition: color 0.2s ease-in-out;
+      }
+      .clickable-detail:hover {
+        color: #a5b4fc;
+      }
+
+      /* QR SCANNER STYLES */
+      .qr-scanner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+        animation: fadeIn 0.3s ease;
+      }
+      .qr-scanner-box {
+        width: 250px;
+        height: 250px;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        border-radius: 1rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(79, 70, 229, 0.5);
+      }
+      .qr-scanner-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #86efac, transparent);
+        animation: scan-line-anim 2.5s infinite ease-in-out;
+      }
+      @keyframes scan-line-anim {
+        0% { transform: translateY(0); }
+        50% { transform: translateY(247px); }
+        100% { transform: translateY(0); }
+      }
+      /* LOGO SCROLLER STYLES */
+       .service-showcase-container {
+        width: 100%;
+        margin-top: 4rem;
+        overflow: hidden;
+      }
+       .logo-scroller {
+        display: flex;
+        width: max-content;
+        animation: scroll-logos 40s linear infinite;
+      }
+      .logo-scroller svg {
+        height: 40px;
+        margin: 0 2.5rem;
+        fill: #9ca3af;
+        transition: fill 0.3s ease, transform 0.3s ease;
+      }
+       .logo-scroller:hover {
+        animation-play-state: paused;
+      }
+      .logo-scroller svg:hover {
+        fill: white;
+        transform: scale(1.1);
+      }
+      @keyframes scroll-logos {
+        from { transform: translateX(0%); }
+        to { transform: translateX(-50%); }
+      }
+
+      /* RECENT SHIPMENTS STYLES */
+      .recent-shipments-container {
+        margin-top: 2rem;
+        width: 100%;
+        padding: 1rem;
+        background-color: rgba(31, 41, 55, 0.5);
+        border-radius: 0.5rem;
+      }
+      .recent-shipments-title {
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--text-secondary-color);
+        margin-bottom: 1rem;
+        text-align: left;
+      }
+      .recent-shipments-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+      .recent-shipment-item {
+        background-color: #374151;
+        color: var(--text-color);
+        border: 1px solid #4b5563;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background-color 0.2s, border-color 0.2s;
+      }
+      .recent-shipment-item:hover {
+        background-color: #4b5563;
+        border-color: #6366f1;
+      }
+
+      /* GENERATING REPORT STYLES */
+      .generating-report-container {
+        width: 100%;
+        max-width: 500px;
+        background-color: #1f2937;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: left;
+        animation: fadeIn 0.5s ease;
+      }
+      .report-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: white;
+        margin-bottom: 1.5rem;
+      }
+      .report-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .report-step {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: step-fade-in 0.5s ease forwards;
+      }
+      .report-step.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .report-step-icon {
+        width: 24px;
+        height: 24px;
+      }
+      .report-step-icon .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #4b5563;
+        border-top-color: #6366f1;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      .report-step-icon .checkmark {
+        color: var(--success-color);
+        animation: checkmark-pop 0.3s ease-out;
+      }
+      .report-step-text {
+        font-size: 1rem;
+        color: var(--text-secondary-color);
+        transition: color 0.3s ease;
+      }
+      .report-step.visible .report-step-text {
+        color: var(--text-color);
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      @keyframes step-fade-in {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes checkmark-pop {
+        0% { transform: scale(0); }
+        80% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+      }
+    </style>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
