@@ -1,21 +1,32 @@
+
+
 import { GoogleGenAI, Chat } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 let chat: Chat | null = null;
 
+// A list of high-quality, professional prompts to generate convincing service-oriented images.
+const THEMATIC_PROMPTS = [
+  "A satisfied customer smiling as they receive a package from a friendly, uniformed IntelliTrack courier at their doorstep. The scene is bright, professional, and shot with a shallow depth of field.",
+  "A state-of-the-art, clean IntelliTrack warehouse with automated conveyor belts moving packages. Workers in safety vests are efficiently scanning and sorting goods under bright, clean lighting.",
+  "A close-up shot of a customer signing for a delivery on a digital tablet held by an IntelliTrack courier. Focus on the secure, professional handover of the package.",
+  "A diverse team of logistics professionals collaborating in a modern IntelliTrack control center, with large screens showing world maps and tracking data. The atmosphere is high-tech and efficient.",
+];
+
 /**
- * Generates an image based on a text prompt describing package contents.
- * @param prompt A description of the items in the package.
+ * Generates a thematic, professional image representing the courier service,
+ * rather than the literal contents of the package.
+ * @param _prompt This parameter is ignored; a random thematic prompt is used instead.
  * @returns A base64 encoded data URL for the generated image.
  */
-export async function generatePackageImage(prompt: string): Promise<string> {
+export async function generatePackageImage(_prompt: string): Promise<string> {
   try {
-    // Enhance the prompt for better image quality and context
-    const fullPrompt = `A high-quality, professional product photograph of the following item(s) on a neutral, clean studio background: ${prompt}. The image should be clear and well-lit.`;
+    // Select a random prompt from the predefined list to ensure high-quality, relevant imagery.
+    const randomPrompt = THEMATIC_PROMPTS[Math.floor(Math.random() * THEMATIC_PROMPTS.length)];
 
     const response = await ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
-        prompt: fullPrompt,
+        prompt: randomPrompt,
         config: {
           numberOfImages: 1,
           outputMimeType: 'image/jpeg',
@@ -50,7 +61,8 @@ export function initializeChat(packageId: string | null): void {
     
   chat = ai.chats.create({
     model: 'gemini-2.5-flash',
-    config: { systemInstruction },
+    // FIX: systemInstruction should be a string, not an object.
+    config: { systemInstruction: systemInstruction },
   });
 }
 

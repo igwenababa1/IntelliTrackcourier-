@@ -1,57 +1,109 @@
-// Fix: Populate the contents of App.tsx
-import React, { useState, useEffect } from 'react';
+
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { PackageDetails, NewShipmentData } from './types';
+import { getShipmentDetails, createShipment } from './services/shipmentService';
+import { initializeChat } from './services/geminiService';
+import { simulateNextEvent } from './services/shipmentSimulator';
+import Header from './components/Header';
 import WelcomeScreen from './components/WelcomeScreen';
 import TrackingDisplay from './components/TrackingDisplay';
 import GeneratingReportScreen from './components/GeneratingReportScreen';
-import Header from './components/Header';
-import AppBackground from './components/AppBackground';
 import QRCodeScanner from './components/QRCodeScanner';
 import ChatAssistant from './components/ChatAssistant';
 import LogoutConfirmation from './components/LogoutConfirmation';
-import { getShipmentDetails } from './services/shipmentService';
-import { initializeChat } from './services/geminiService';
-import { PackageDetails } from './types';
 import VoiceCommandButton, { VoiceCommand } from './components/VoiceCommandButton';
+import TrackingBackground from './components/TrackingBackground';
+import CreateShipment from './components/CreateShipment';
 import useSound from './hooks/useSound';
-import { SUCCESS_SOUND, COMMAND_SOUND } from './components/sounds';
+import { SUCCESS_SOUND } from './components/sounds';
+import AppBackground from './components/AppBackground';
 
-type AppState = 'welcome' | 'generating_report' | 'tracking' | 'error';
+type AppState = 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('welcome');
-  const [trackingId, setTrackingId] = useState<string>('');
   const [packageDetails, setPackageDetails] = useState<PackageDetails | null>(null);
+  const [trackingId, setTrackingId] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   
-  const [playSuccess] = useSound(SUCCESS_SOUND);
-  const [playCommand] = useSound(COMMAND_SOUND);
+  // Chat state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInitialPrompt, setChatInitialPrompt] = useState('');
+  
+  // Logout confirmation state
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
-  useEffect(() => {
-    // Initialize chat with no specific package ID initially
-    initializeChat(null);
-  }, []);
+  // Sound effect
+  const [playSuccessSound] = useSound(SUCCESS_SOUND, 0.5);
 
-  const handleTrack = async (id: string) => {
+  const handleTrack = useCallback(async (id: string) => {
+    if (!id) return;
+    setIsLoading(true);
+    setError(null);
     setTrackingId(id);
     setAppState('generating_report');
+
+    // Artificial delay for the "generating report" screen
+    setTimeout(async () => {
+      try {
+        const details = await getShipmentDetails(id);
+        if (details) {
+          playSuccessSound();
+          setPackageDetails(details);
+          setAppState('tracking');
+          initializeChat(details.id);
+        } else {
+          setError(`No shipment found for Tracking ID: ${id}. Please check the ID and try again.`);
+          setAppState('error');
+        }
+      } catch (e) {
+        setError('An unexpected error occurred. Please try again later.');
+        setAppState('error');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 8500); // Duration of the generating report animation
+  }, [playSuccessSound]);
+
+  // Live simulation effect for package updates
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (appState === 'tracking' && packageDetails && packageDetails.status !== 'Delivered') {
+      interval = setInterval(() => {
+        setPackageDetails(prevDetails => {
+          if (prevDetails) {
+            return simulateNextEvent(prevDetails);
+          }
+          return null;
+        });
+      }, 7000); // Update every 7 seconds
+    }
+    return () => clearInterval(interval);
+  }, [appState, packageDetails]);
+
+  const handleGoToCreateShipment = () => {
+    setError(null);
+    setAppState('create_shipment');
+  };
+
+  const handleCreateShipment = async (data: NewShipmentData) => {
+    setIsLoading(true);
     setError(null);
     try {
-      const details = await getShipmentDetails(id);
-      if (details) {
-        setPackageDetails(details);
-        initializeChat(details.id); // Re-initialize chat with package context
-        setAppState('tracking');
-        playSuccess();
-      } else {
-        setError(`No shipment found for Tracking ID: ${id}`);
-        setAppState('error');
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again later.');
-      setAppState('error');
+      const newPackage = await createShipment(data);
+      setPackageDetails(newPackage);
+      setTrackingId(newPackage.id);
+      setAppState('tracking');
+      initializeChat(newPackage.id);
+      playSuccessSound();
+    } catch (e) {
+      setError('Could not create shipment. Please try again.');
+      setAppState('create_shipment'); // stay on the form page on error
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,16 +116,28 @@ const App: React.FC = () => {
     handleTrack(id);
   };
 
-  const handleNewSearch = () => {
+  const resetToHome = () => {
+    setAppState('welcome');
     setPackageDetails(null);
     setTrackingId('');
     setError(null);
-    initializeChat(null);
-    setAppState('welcome');
+    setIsLoading(false);
   };
+
+  const handleShowChat = (prompt: string = '') => {
+      setChatInitialPrompt(prompt || 'Hello! How can I help you with your shipment?');
+      setIsChatOpen(true);
+  }
   
+  const handleLogout = () => {
+      console.log("Logging out...");
+      setIsLogoutConfirmOpen(false);
+      // In a real app, you'd clear tokens, etc.
+      resetToHome();
+  }
+
   const handleVoiceCommand = (command: VoiceCommand) => {
-    playCommand();
+    console.log("Voice command received:", command);
     switch (command.command) {
       case 'track':
         if (command.payload) {
@@ -81,73 +145,80 @@ const App: React.FC = () => {
         }
         break;
       case 'go_home':
-        handleNewSearch();
+        resetToHome();
         break;
       case 'log_out':
         setIsLogoutConfirmOpen(true);
         break;
-      // Other commands could be handled here for the 'tracking' state
-      default:
-        console.log("Received command for different state:", command);
+      // Add cases for other commands if needed
     }
   };
-  
-  const handleLogout = () => {
-      // In a real app, this would clear tokens, etc.
-      console.log("User logged out.");
-      setIsLogoutConfirmOpen(false);
-      handleNewSearch(); // Reset to welcome screen
-  }
 
   const renderContent = () => {
+    if (isScanning) {
+        return <QRCodeScanner onScan={handleScanComplete} onClose={() => setIsScanning(false)} />;
+    }
+
     switch (appState) {
       case 'generating_report':
-        return <GeneratingReportScreen onComplete={() => {}} />;
+        return <GeneratingReportScreen onComplete={() => {}} />; // onComplete is handled by handleTrack timeout
       case 'tracking':
-        return packageDetails ? <TrackingDisplay details={packageDetails} onNewSearch={handleNewSearch} /> : null;
+        return packageDetails ? <TrackingDisplay packageDetails={packageDetails} onNewSearch={resetToHome} onShowChat={handleShowChat} /> : null;
+      case 'create_shipment':
+        return <CreateShipment onCreateShipment={handleCreateShipment} isLoading={isLoading} />;
       case 'error':
-        // Display error on the welcome screen
         return (
-          <>
-            <WelcomeScreen onTrack={handleTrack} onScan={handleScan} isLoading={false} />
-            {error && <p style={{ color: '#f87171', textAlign: 'center', marginTop: '-1rem' }}>{error}</p>}
-          </>
+          <WelcomeScreen
+            onTrack={handleTrack}
+            onScan={handleScan}
+            isLoading={isLoading}
+            initialTrackingId={trackingId}
+          />
         );
       case 'welcome':
       default:
-        return <WelcomeScreen onTrack={handleTrack} onScan={handleScan} isLoading={false} initialTrackingId={trackingId} />;
+        return (
+          <WelcomeScreen
+            onTrack={handleTrack}
+            onScan={handleScan}
+            isLoading={isLoading}
+            initialTrackingId={trackingId}
+          />
+        );
     }
   };
 
+  const isWelcomeState = appState === 'welcome' || appState === 'error';
+
   return (
-    <div className="app-container">
-      <AppBackground />
-      <Header 
-        onHomeClick={handleNewSearch} 
-        onTrackClick={() => appState !== 'tracking' && appState !== 'generating_report' && setAppState('welcome')}
+    <div className={`app-container state-${appState}`}>
+       {isWelcomeState && <AppBackground />}
+       {appState === 'tracking' && <TrackingBackground />}
+      
+       <Header 
+        onHomeClick={resetToHome}
+        onNewShipmentClick={handleGoToCreateShipment}
+        onTrackClick={() => appState === 'tracking' ? {} : handleTrack(trackingId || 'IT123456789')}
         supportEmail="support@intellitrack.dev"
         onLogoutClick={() => setIsLogoutConfirmOpen(true)}
         appState={appState}
-        onChatClick={() => setIsChatOpen(true)}
-      />
+        onChatClick={() => handleShowChat()}
+       />
       <main className="main-content">
+        {error && <div className="error-banner">{error}</div>}
         {renderContent()}
       </main>
-      
-      {isScanning && <QRCodeScanner onScan={handleScanComplete} onClose={() => setIsScanning(false)} />}
-      
+
       <ChatAssistant 
-        isOpen={isChatOpen} 
+        isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
-        initialPrompt={packageDetails ? `Hello! How can I help you with shipment ${packageDetails.id}?` : "Hello! How can I assist you with your shipment today?"}
+        initialPrompt={chatInitialPrompt}
       />
-      
       <LogoutConfirmation 
         isOpen={isLogoutConfirmOpen}
         onConfirm={handleLogout}
         onCancel={() => setIsLogoutConfirmOpen(false)}
       />
-
       <VoiceCommandButton onCommand={handleVoiceCommand} appState={appState === 'tracking' ? 'tracking' : 'welcome'} />
     </div>
   );

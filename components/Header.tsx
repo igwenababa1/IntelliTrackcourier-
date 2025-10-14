@@ -3,14 +3,15 @@ import Icon from './Icon';
 
 interface HeaderProps {
   onHomeClick: () => void;
+  onNewShipmentClick: () => void;
   onTrackClick: () => void;
   supportEmail: string;
   onLogoutClick: () => void;
-  appState: 'welcome' | 'generating_report' | 'tracking' | 'error';
+  appState: 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
   onChatClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onHomeClick, onTrackClick, supportEmail, onLogoutClick, appState, onChatClick }) => {
+const Header: React.FC<HeaderProps> = ({ onHomeClick, onNewShipmentClick, onTrackClick, supportEmail, onLogoutClick, appState, onChatClick }) => {
   const handleLinkClick = (e: React.MouseEvent, handler: () => void) => {
     e.preventDefault();
     handler();
@@ -18,6 +19,7 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, onTrackClick, supportEmail
 
   const isTrackingActive = appState === 'tracking' || appState === 'generating_report';
   const isHomeActive = appState === 'welcome' || appState === 'error';
+  const isCreateActive = appState === 'create_shipment';
 
   return (
     <header className="app-header">
@@ -30,6 +32,7 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, onTrackClick, supportEmail
       </div>
       <nav className="header-nav">
         <a href="#" onClick={(e) => handleLinkClick(e, onHomeClick)} className={isHomeActive ? 'active' : ''}>Home</a>
+        <a href="#" onClick={(e) => handleLinkClick(e, onNewShipmentClick)} className={isCreateActive ? 'active' : ''}>New Shipment</a>
         <a href="#" onClick={(e) => handleLinkClick(e, onTrackClick)} className={isTrackingActive ? 'active' : ''}>Track</a>
         <a href="#" onClick={(e) => handleLinkClick(e, onChatClick)}>AI Assistant</a>
         <a href={`mailto:${supportEmail}`} title="Contact Customer Support">Contact</a>

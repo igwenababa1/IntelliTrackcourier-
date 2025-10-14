@@ -8,7 +8,7 @@ const VERIFICATION_STEPS = [
   "Finalizing Secure Tracking Report..."
 ];
 
-const STEP_DURATION = 1200; // ms
+const STEP_DURATION = 2000; // ms
 
 interface GeneratingReportScreenProps {
   onComplete: () => void;
@@ -24,6 +24,7 @@ const GeneratingReportScreen: React.FC<GeneratingReportScreenProps> = ({ onCompl
           return prevStep + 1;
         } else {
           clearInterval(timer);
+          // A short delay after the last checkmark appears before completing
           setTimeout(onComplete, 500);
           return prevStep;
         }
@@ -40,6 +41,7 @@ const GeneratingReportScreen: React.FC<GeneratingReportScreenProps> = ({ onCompl
     if (stepIndex === currentStep && currentStep < VERIFICATION_STEPS.length) {
       return <div className="spinner"></div>;
     }
+    // Return an empty placeholder for future steps
     return <div style={{ width: '20px', height: '20px' }}></div>;
   };
 

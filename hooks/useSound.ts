@@ -10,23 +10,28 @@ const useSound = (soundUrl: string, volume: number = 0.5): [() => void] => {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // This effect creates the audio object and sets its properties.
-    // It runs only once when the component mounts.
-    const audioInstance = new Audio(soundUrl);
-    audioInstance.volume = volume;
-    audioInstance.preload = 'auto';
-    setAudio(audioInstance);
+    // Guard against an empty soundUrl, which causes the "no supported sources" error.
+    if (soundUrl) {
+      const audioInstance = new Audio(soundUrl);
+      audioInstance.volume = volume;
+      audioInstance.preload = 'auto';
+      setAudio(audioInstance);
 
-    // No cleanup needed for the audio object itself, as it's managed by the browser.
+      // Cleanup function to pause the audio when the component unmounts
+      // or the soundUrl changes, preventing memory leaks.
+      return () => {
+        audioInstance.pause();
+      };
+    }
   }, [soundUrl, volume]);
 
   const play = useCallback(() => {
     // The play function is memoized with useCallback.
-    // It checks if the audio is ready and plays it from the beginning.
+    // It checks if the audio object is ready before attempting to play.
     if (audio) {
       audio.currentTime = 0; // Rewind to the start
       audio.play().catch(error => {
-        // Catch and log any errors that occur during playback.
+        // Catch and log any errors that might occur during playback.
         console.error("Error playing sound:", error);
       });
     }

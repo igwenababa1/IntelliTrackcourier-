@@ -4,45 +4,6 @@ import useSound from '../hooks/useSound';
 import { COMMAND_SOUND, CONFIRM_SOUND } from './sounds';
 
 const modalStyles: { [key: string]: React.CSSProperties } = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 3000,
-    animation: 'fadeIn 0.3s ease',
-  },
-  content: {
-    backgroundColor: 'var(--card-bg-color)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    borderRadius: '0.75rem',
-    padding: '2rem',
-    width: '90%',
-    maxWidth: '500px',
-    textAlign: 'center',
-    position: 'relative',
-    border: '1px solid var(--border-color)',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: '1rem',
-    right: '1rem',
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-secondary-color)',
-    cursor: 'pointer',
-    padding: '0.5rem',
-    borderRadius: '50%',
-    transition: 'background-color 0.2s, color 0.2s',
-  },
   title: {
     fontSize: '1.5rem',
     fontWeight: 600,
@@ -92,39 +53,7 @@ const modalStyles: { [key: string]: React.CSSProperties } = {
     color: 'white',
     border: '1px solid var(--border-color)',
   },
-  recordButton: {
-     width: '80px',
-     height: '80px',
-     borderRadius: '50%',
-     border: '4px solid white',
-     backgroundColor: '#dc2626',
-     cursor: 'pointer',
-     margin: '1rem auto',
-     transition: 'transform 0.2s, background-color 0.2s',
-  },
-  recordingIndicator: {
-    width: '20px',
-    height: '20px',
-    backgroundColor: '#dc2626',
-    borderRadius: '50%',
-    animation: 'pulse-red 2s infinite',
-  },
-  signatureCanvas: {
-    backgroundColor: 'white',
-    borderRadius: '0.5rem',
-    cursor: 'crosshair',
-    touchAction: 'none',
-    marginBottom: '1.5rem',
-  }
 };
-
-const pulseKeyframes = `
-  @keyframes pulse-red {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-  }
-`;
 
 const CameraConfirmationModal: React.FC<{
   onConfirm: (data: string) => void;
@@ -180,9 +109,9 @@ const CameraConfirmationModal: React.FC<{
   }
 
   return (
-    <div style={modalStyles.overlay}>
-      <div style={modalStyles.content}>
-        <button style={modalStyles.closeButton} onClick={onClose}><Icon name="close" /></button>
+    <div className="confirmation-modal-overlay">
+      <div className="confirmation-modal-content">
+        <button className="confirmation-modal-close-button" onClick={onClose}><Icon name="close" /></button>
         <h2 style={modalStyles.title}>Confirm with Photo</h2>
         <p style={modalStyles.statusText}>{error || (step === 'capture' ? 'Position the package in the frame.' : 'Review your photo.')}</p>
         
@@ -264,10 +193,9 @@ const AudioConfirmationModal: React.FC<{
   }
 
   return (
-    <div style={modalStyles.overlay}>
-      <div style={modalStyles.content}>
-        <style>{pulseKeyframes}</style>
-        <button style={modalStyles.closeButton} onClick={onClose}><Icon name="close" /></button>
+    <div className="confirmation-modal-overlay">
+      <div className="confirmation-modal-content">
+        <button className="confirmation-modal-close-button" onClick={onClose}><Icon name="close" /></button>
         <h2 style={modalStyles.title}>Confirm with Voice Note</h2>
         <p style={modalStyles.statusText}>
           {error || (isRecording ? "Recording..." : audioURL ? "Review your voice note." : "Press the button to start recording.")}
@@ -275,11 +203,11 @@ const AudioConfirmationModal: React.FC<{
 
         {!audioURL && (
           <button
-            style={{...modalStyles.recordButton, ...(isRecording ? { transform: 'scale(0.9)', backgroundColor: '#ef4444' } : {})}}
+            className={`record-button ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
             aria-label={isRecording ? 'Stop recording' : 'Start recording'}
           >
-           {isRecording && <div style={modalStyles.recordingIndicator}></div>}
+           {isRecording && <div className="recording-indicator"></div>}
           </button>
         )}
         
@@ -386,6 +314,7 @@ const SignatureConfirmationModal: React.FC<{
     const canvas = canvasRef.current;
     if (canvas) {
       playSuccess();
+      // Create a new canvas to draw the signature on a white background
       const finalCanvas = document.createElement('canvas');
       finalCanvas.width = canvas.width;
       finalCanvas.height = canvas.height;
@@ -400,12 +329,12 @@ const SignatureConfirmationModal: React.FC<{
   };
 
   return (
-    <div style={modalStyles.overlay}>
-      <div style={modalStyles.content}>
-        <button style={modalStyles.closeButton} onClick={onClose}><Icon name="close" /></button>
+    <div className="confirmation-modal-overlay">
+      <div className="confirmation-modal-content">
+        <button className="confirmation-modal-close-button" onClick={onClose}><Icon name="close" /></button>
         <h2 style={modalStyles.title}>Confirm with Signature</h2>
         <p style={modalStyles.statusText}>Please sign in the box below.</p>
-        <canvas ref={canvasRef} width="400" height="200" style={modalStyles.signatureCanvas} />
+        <canvas ref={canvasRef} width="400" height="200" className="signature-canvas" />
         <div style={modalStyles.actions}>
           <button style={{...modalStyles.actionButton, ...modalStyles.secondaryButton}} onClick={handleClear}>Clear</button>
           <button style={{...modalStyles.actionButton, ...modalStyles.primaryButton}} onClick={handleConfirm}>Confirm</button>
@@ -414,7 +343,6 @@ const SignatureConfirmationModal: React.FC<{
     </div>
   );
 };
-
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {

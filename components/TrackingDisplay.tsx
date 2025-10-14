@@ -1,222 +1,287 @@
-// Fix: Populate the contents of components/TrackingDisplay.tsx
-import React, { useState, useRef, useEffect } from 'react';
-import { PackageDetails } from '../types';
+import React, { useState, useEffect } from 'react';
+import { PackageDetails, TrackingEvent } from '../types';
+import { generatePackageImage } from '../services/geminiService';
+import { getJourneyPath } from '../services/shipmentService';
+import ShipmentProgressBar from './ShipmentProgressBar';
 import TimelineItem from './TimelineItem';
 import Icon, { IconName } from './Icon';
+import ShipmentActions from './ShipmentActions';
 import MapVisualization from './MapVisualization';
-import ShipmentProgressBar from './ShipmentProgressBar';
-import ShipmentReceipt from './ShipmentReceipt';
-import DeliveryConfirmation from './DeliveryConfirmation';
-import { generatePackageImage, generateCreativeDescription } from '../services/geminiService';
 import Loader from './Loader';
+import ShipmentReceipt from './ShipmentReceipt';
 
 interface TrackingDisplayProps {
-  details: PackageDetails;
+  packageDetails: PackageDetails;
   onNewSearch: () => void;
+  onShowChat: (prompt: string) => void;
 }
 
-const styles: { [key:string]: React.CSSProperties } = {
-  container: {
-    maxWidth: '1200px',
-    margin: '2rem auto',
-    padding: '0 2rem',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(12, 1fr)',
-    gap: '2rem',
-  },
-  mainContent: {
-    gridColumn: '1 / span 12',
-    lg: { gridColumn: '1 / span 8' },
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2rem',
-  },
-  sidebar: {
-    gridColumn: '1 / span 12',
-    lg: { gridColumn: '9 / span 4' },
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2rem',
-  },
-  card: {
-    backgroundColor: 'var(--card-bg-color)',
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
-    borderRadius: '0.75rem',
-    padding: '1.5rem',
-    border: '1px solid var(--border-color)',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1rem',
-  },
-  trackingId: {
-    fontSize: '1.25rem',
-    fontWeight: 600,
-    color: 'white',
-  },
-  newSearchButton: {
-    background: 'none',
-    border: '1px solid var(--border-color)',
-    color: 'var(--text-color)',
-    padding: '0.5rem 1rem',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s, color 0.2s',
-  },
-  statusSection: {
-    textAlign: 'center',
-    padding: '1.5rem',
-    backgroundColor: 'rgba(17, 24, 39, 0.5)',
-    borderRadius: '0.5rem',
-    marginBottom: '1rem',
-  },
-  currentStatus: {
-    fontSize: '1.75rem',
-    fontWeight: 700,
-    color: 'var(--primary-color)',
-    margin: '0 0 0.5rem 0',
-  },
-  deliveryDate: {
-    fontSize: '1rem',
-    color: 'var(--text-color)',
-    margin: 0,
-  },
-  timelineContainer: {
-    maxHeight: '500px',
-    overflowY: 'auto',
-    paddingRight: '1rem',
-    marginRight: '-1rem'
-  },
-};
+type ActiveView = 'journey' | 'map' | 'receipt';
 
 const getIconForStatus = (status: string): IconName => {
-    const s = status.toLowerCase();
-    if (s.includes('delivered')) return 'home';
-    if (s.includes('out for delivery')) return 'truck';
-    if (s.includes('arrived at') || s.includes('processed')) return 'warehouse';
-    if (s.includes('departed')) return 'package';
-    return 'check-circle';
+  const s = status.toLowerCase();
+  if (s.includes('delivered')) return 'home';
+  if (s.includes('out for delivery')) return 'truck';
+  if (s.includes('arrived')) return 'warehouse';
+  if (s.includes('departed')) return 'package';
+  if (s.includes('picked up')) return 'flag';
+  return 'check-circle';
 };
 
-const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ details, onNewSearch }) => {
-  const [activeEventId, setActiveEventId] = useState<string>(details.history[0]?.date);
-  const [packageImage, setPackageImage] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
-  const [creativeDesc, setCreativeDesc] = useState('');
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNewSearch, onShowChat }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [activeView, setActiveView] = useState<ActiveView>('journey');
+
+  const getContentsSummary = (details: PackageDetails): string => {
+    if (!details.declaredItems || details.declaredItems.length === 0) return 'No items declared';
+    const descriptions = details.declaredItems.map(item => item.description);
+    return descriptions.join(', ');
+  }
 
   useEffect(() => {
-    itemRefs.current = itemRefs.current.slice(0, details.history.length);
-  }, [details.history]);
-
-  useEffect(() => {
-    const activeIndex = details.history.findIndex(event => event.date === activeEventId);
-    if (activeIndex !== -1 && itemRefs.current[activeIndex]) {
-      itemRefs.current[activeIndex]?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      });
-    }
-  }, [activeEventId, details.history]);
-
-  useEffect(() => {
-    const fetchGenerativeAssets = async () => {
-      setImageLoading(true);
-      try {
-        const [img, desc] = await Promise.all([
-          generatePackageImage(details.contents),
-          generateCreativeDescription(details.contents)
-        ]);
-        setPackageImage(img);
-        setCreativeDesc(desc);
-      } catch (error) {
-        console.error("Failed to generate assets:", error);
-        // Fallback or error state can be handled here
-      } finally {
-        setImageLoading(false);
+    const fetchImage = async () => {
+      const contentsSummary = getContentsSummary(packageDetails);
+      if (contentsSummary !== 'No items declared') {
+        setIsImageLoading(true);
+        try {
+          const url = await generatePackageImage(contentsSummary);
+          setImageUrl(url);
+        } catch (error) {
+          console.error('Failed to generate package image:', error);
+          setImageUrl(null); // Set to null on error to hide loader
+        } finally {
+          setIsImageLoading(false);
+        }
+      } else {
+        setIsImageLoading(false);
       }
     };
-    fetchGenerativeAssets();
-  }, [details.contents]);
-  
-  const handleConfirmation = (type: 'photo' | 'audio' | 'signature', data: string) => {
-    console.log(`Delivery confirmed with ${type}. Data length: ${data.length}`);
-    alert(`Delivery confirmation received via ${type}!`);
+    fetchImage();
+  }, [packageDetails.declaredItems]);
+
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const isDelivered = details.status.toLowerCase() === 'delivered';
+  const calculateDaysRemaining = (deliveryDate: string): string | null => {
+    if (packageDetails.status.toLowerCase() === 'delivered') {
+        return 'Package has been delivered';
+    }
+    const today = new Date();
+    const delivery = new Date(deliveryDate);
+    today.setHours(0, 0, 0, 0);
+    delivery.setHours(0, 0, 0, 0);
+
+    if (delivery < today) {
+        return 'Delivery is overdue';
+    }
+
+    const differenceInTime = delivery.getTime() - today.getTime();
+    const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+    
+    if (differenceInDays === 0) {
+        return "Arriving today";
+    }
+    if (differenceInDays === 1) {
+        return "Arriving tomorrow";
+    }
+    return `${differenceInDays} days remaining`;
+  };
+  
+  const getStatusBadgeClass = (status: string): string => {
+    const s = status.toLowerCase();
+    if (s.includes('delivered')) return 'status-badge--delivered';
+    if (s.includes('out for delivery')) return 'status-badge--delivery';
+    return 'status-badge--transit';
+  };
+
+  const daysRemainingText = calculateDaysRemaining(packageDetails.estimatedDelivery);
+  const journeyPath = getJourneyPath(packageDetails.history);
+
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'map':
+        return <MapVisualization path={journeyPath} activeLocation={packageDetails.history[0].location} />;
+      case 'receipt':
+        return <ShipmentReceipt details={packageDetails} />;
+      case 'journey':
+      default:
+        return (
+          <div className="timeline-container">
+            {packageDetails.history.map((event: TrackingEvent, index: number) => (
+              <TimelineItem
+                key={index}
+                event={event}
+                isLast={index === 0}
+                icon={getIconForStatus(event.status)}
+              />
+            ))}
+          </div>
+        );
+    }
+  };
 
   return (
-    <div style={styles.container} className="tracking-display-grid">
-      <main style={styles.mainContent} className="tracking-main-content">
-        <div style={styles.card}>
-            <div style={styles.header}>
-                <h2 style={styles.trackingId}>Tracking ID: {details.id}</h2>
-                <button 
-                  style={styles.newSearchButton} 
-                  onClick={onNewSearch}
-                  onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-color)'; e.currentTarget.style.color = 'white'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-color)'; }}
-                >
-                  New Search
-                </button>
-            </div>
-            <div style={styles.statusSection}>
-                <h3 style={styles.currentStatus}>{details.status}</h3>
-                <p style={styles.deliveryDate}>
-                  {isDelivered ? `Delivered on ${details.history[0].date}` : `Estimated Delivery: ${details.estimatedDelivery}`}
-                </p>
-            </div>
-            <ShipmentProgressBar status={details.status} history={details.history} />
-        </div>
+    <div className="tracking-display-container">
+      <header className="advanced-header-container">
+          <video 
+              id="header-video-bg"
+              src="https://videos.pexels.com/video-files/853874/853874-hd_1920_1080_25fps.mp4" 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+          ></video>
+          <div className="header-video-overlay"></div>
+          <div className="advanced-header-content">
+              <div className="parcel-logo">
+                  <span className="parcel-emoji" role="img" aria-label="package">📦</span>
+                  <span>IntelliTrack</span>
+              </div>
+              <div className="tracking-id-main">
+                  {packageDetails.id}
+              </div>
+              <div className="header-details-right">
+                  <div className="verified-badge">
+                      <Icon name="shield-check" />
+                      <span>Verified Shipment</span>
+                  </div>
+                  <div className={`status-badge ${getStatusBadgeClass(packageDetails.status)}`}>
+                      {packageDetails.status}
+                  </div>
+              </div>
+          </div>
+          <button onClick={onNewSearch} className="new-search-button">
+            <Icon name="edit-3" /> New Search
+          </button>
+      </header>
+      
+      <ShipmentProgressBar status={packageDetails.status} history={packageDetails.history} />
 
-        <div style={{...styles.card, display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{color: 'white', marginTop: 0}}>Shipment Journey</h3>
-            <div style={styles.timelineContainer}>
-                {details.history.map((event, index) => (
-                    <TimelineItem
-                        key={event.date}
-                        event={event}
-                        isActive={event.date === activeEventId}
-                        onClick={() => setActiveEventId(event.date)}
-                        itemRef={el => itemRefs.current[index] = el}
-                        iconName={getIconForStatus(event.status)}
-                    />
-                ))}
-            </div>
+      <div className="tracking-body">
+        <div className="main-content-panel">
+          <div className="view-selector" role="tablist" aria-label="Tracking Information Views">
+            <button
+              id="tab-journey"
+              onClick={() => setActiveView('journey')}
+              className={activeView === 'journey' ? 'active' : ''}
+              role="tab"
+              aria-selected={activeView === 'journey'}
+              aria-controls="view-content-panel"
+            >
+              Journey
+            </button>
+            <button
+              id="tab-map"
+              onClick={() => setActiveView('map')}
+              className={activeView === 'map' ? 'active' : ''}
+              role="tab"
+              aria-selected={activeView === 'map'}
+              aria-controls="view-content-panel"
+            >
+              Map
+            </button>
+            <button
+              id="tab-receipt"
+              onClick={() => setActiveView('receipt')}
+              className={activeView === 'receipt' ? 'active' : ''}
+              role="tab"
+              aria-selected={activeView === 'receipt'}
+              aria-controls="view-content-panel"
+            >
+              Receipt
+            </button>
+          </div>
+          <div
+            id="view-content-panel"
+            role="tabpanel"
+            className="view-content"
+            aria-labelledby={`tab-${activeView}`}
+          >
+            {renderActiveView()}
+          </div>
         </div>
         
-        {isDelivered && (
-          <div style={styles.card}>
-            <h3 style={{color: 'white', marginTop: 0}}>Confirm Delivery</h3>
-            <p style={{color: 'var(--text-secondary-color)', marginTop: 0, marginBottom: '1.5rem'}}>Please provide a confirmation for your records.</p>
-            <DeliveryConfirmation onConfirm={handleConfirmation} />
-          </div>
-        )}
-
-      </main>
-      <aside style={styles.sidebar} className="tracking-sidebar">
-        <div style={styles.card}>
-            <h3 style={{ color: 'white', marginTop: 0 }}>Package Contents</h3>
-            {imageLoading ? <Loader /> : (
-              packageImage && <img src={packageImage} alt="Generated view of package contents" style={{ width: '100%', borderRadius: '0.5rem', marginBottom: '1rem' }} />
+        <aside className="sidebar-panel">
+          <div className="package-image-container">
+            {isImageLoading ? <Loader /> : imageUrl ? (
+              <img src={imageUrl} alt={getContentsSummary(packageDetails)} className="package-image" />
+            ) : (
+              <div className="image-placeholder">
+                <Icon name="camera" />
+                <span>Image not available</span>
+              </div>
             )}
-            <p style={{ color: 'var(--text-color)', fontWeight: 600, fontSize: '1.1rem' }}>{details.contents}</p>
-            <p style={{ color: 'var(--text-secondary-color)', fontStyle: 'italic', marginTop: 0 }}>"{creativeDesc}"</p>
-        </div>
-        <div style={styles.card}>
-            <h3 style={{color: 'white', marginTop: 0}}>Shipment Details</h3>
-            <ShipmentReceipt details={details} />
-        </div>
-        <div style={styles.card}>
-            <h3 style={{color: 'white', marginTop: 0}}>Live Journey Map</h3>
-            <MapVisualization history={details.history} />
-        </div>
-      </aside>
+            <h3>{getContentsSummary(packageDetails)}</h3>
+          </div>
+
+          <div className="delivery-date-container">
+            <div className="delivery-date-icon">
+              <Icon name="calendar" />
+            </div>
+            <div className="delivery-date-info">
+              <h4>Estimated Delivery</h4>
+              <p>{formatDate(packageDetails.estimatedDelivery)}</p>
+              {daysRemainingText && <span>{daysRemainingText}</span>}
+            </div>
+          </div>
+
+          <div className="address-container">
+            <div className="address-icon">
+              <Icon name="flag" />
+            </div>
+            <div className="address-info">
+              <h4>Shipped From</h4>
+              <p>{packageDetails.origin.name}</p>
+              <span>
+                {packageDetails.origin.street}<br />
+                {packageDetails.origin.cityStateZip}<br />
+                {packageDetails.origin.country}
+              </span>
+            </div>
+          </div>
+          
+           {/* Package Contents Details */}
+          <section className="sidebar-section">
+            <h4 className="sidebar-section-title">
+              <Icon name="shield-check" className="title-icon" />
+              <span>Customs Declaration</span>
+            </h4>
+            <div className="sidebar-section-content">
+              {packageDetails.declaredItems.map((item, index) => (
+                <div key={index} className="declared-item-row">
+                  <span className="item-desc">{item.quantity}x {item.description}</span>
+                  <span className="item-value">${(item.quantity * item.value).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Additional Services Details */}
+          <section className="sidebar-section">
+            <h4 className="sidebar-section-title">Additional Services</h4>
+            <div className="sidebar-section-content">
+              <div className="declared-item-row">
+                <span className="item-desc">Insurance Coverage</span>
+                <span className="item-value">${packageDetails.insuranceValue.toFixed(2)}</span>
+              </div>
+              {packageDetails.specialHandling.length > 0 && (
+                <div className="declared-item-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+                  <span className="item-desc">Special Handling</span>
+                  <div className="special-handling-tags">
+                    {packageDetails.specialHandling.map(tag => <span key={tag} className="handling-tag">{tag}</span>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+
+          <ShipmentActions packageDetails={packageDetails} onShowChat={onShowChat} />
+        </aside>
+      </div>
     </div>
   );
 };

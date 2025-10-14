@@ -2,79 +2,127 @@ import React from 'react';
 import { TrackingEvent } from '../types';
 import Icon, { IconName } from './Icon';
 
+interface TimelineItemProps {
+  event: TrackingEvent;
+  isLast: boolean;
+  icon: IconName;
+}
+
 const styles: { [key: string]: React.CSSProperties } = {
   item: {
-    padding: '1rem',
-    borderLeft: '3px solid var(--border-color)',
+    display: 'flex',
     position: 'relative',
-    transition: 'background-color 0.3s ease',
-    cursor: 'pointer',
+    paddingBottom: '2rem',
     paddingLeft: '2.5rem',
   },
-  activeItem: {
-    backgroundColor: 'rgba(88, 86, 214, 0.1)',
-    borderLeft: '3px solid var(--primary-color)',
-  },
-  dot: {
+  line: {
     position: 'absolute',
-    left: '-16px',
-    top: '1.25rem',
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
+    left: '19px',
+    top: '40px',
+    bottom: 0,
+    width: '2px',
     backgroundColor: 'var(--border-color)',
-    border: '3px solid var(--background-color)',
-    transition: 'background-color 0.3s, transform 0.3s, box-shadow 0.3s',
+  },
+  iconContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'center',
-    color: 'var(--text-secondary-color)',
+    alignItems: 'center',
+    backgroundColor: 'var(--card-bg-color)',
+    border: '2px solid var(--border-color)',
   },
-  activeDot: {
-    backgroundColor: 'var(--primary-color)',
-    transform: 'scale(1.1)',
-    color: 'white',
-    boxShadow: '0 0 12px var(--glow-color)',
-  },
-  date: {
-    fontSize: '0.875rem',
-    color: 'var(--text-secondary-color)',
-    fontWeight: 500,
-    marginBottom: '0.25rem',
+  content: {
+    flex: 1,
   },
   status: {
     fontSize: '1rem',
     fontWeight: 600,
-    color: 'white',
-    marginBottom: '0.25rem',
+    margin: '0 0 0.25rem',
   },
   location: {
     fontSize: '0.875rem',
     color: 'var(--text-secondary-color)',
+    margin: '0',
+  },
+  partner: {
+    fontSize: '0.75rem',
+    color: '#9ca3af',
+    margin: '0.25rem 0 0.5rem 0',
+    fontWeight: 500,
+  },
+  partnerLabel: {
+    fontWeight: 'normal',
+    color: '#6b7280',
+  },
+  details: {
+    fontSize: '0.875rem',
+    color: 'var(--text-secondary-color)',
+    margin: '0.5rem 0 0.25rem',
+    paddingLeft: '1rem',
+    borderLeft: '2px solid var(--border-color)',
+    fontStyle: 'italic',
+  },
+  date: {
+    fontSize: '0.875rem',
+    color: 'var(--text-secondary-color)',
+    marginTop: '0.5rem',
   },
 };
 
-interface TimelineItemProps {
-  event: TrackingEvent;
-  isActive: boolean;
-  onClick: () => void;
-  itemRef: (el: HTMLDivElement | null) => void;
-  iconName: IconName;
-}
+const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast, icon }) => {
+  const activeStyles: { [key: string]: React.CSSProperties } = isLast ? {
+    iconContainer: {
+      ...styles.iconContainer,
+      borderColor: 'var(--primary-color)',
+      color: 'var(--primary-color)',
+    },
+    status: {
+      ...styles.status,
+      color: 'white',
+    },
+    location: {
+      ...styles.location,
+      color: 'var(--text-color)',
+    },
+     partner: {
+      ...styles.partner,
+      color: 'var(--text-color)',
+    },
+    details: {
+      ...styles.details,
+      color: 'var(--text-color)',
+      borderColor: 'var(--primary-color)',
+    },
+    date: {
+      ...styles.date,
+      color: 'var(--text-color)',
+    }
+  } : {};
 
-const TimelineItem: React.FC<TimelineItemProps> = ({ event, isActive, onClick, itemRef, iconName }) => {
   return (
-    <div
-      ref={itemRef}
-      style={{ ...styles.item, ...(isActive ? styles.activeItem : {}) }}
-      onClick={onClick}
-    >
-      <div style={{ ...styles.dot, ...(isActive ? styles.activeDot : {}) }}>
-          <Icon name={iconName} className="timeline-dot-icon" />
+    <div style={styles.item}>
+      {!isLast && <div style={styles.line}></div>}
+      <div style={isLast ? activeStyles.iconContainer : styles.iconContainer}>
+        <Icon name={icon} />
       </div>
-      <p style={styles.date}>{event.date}</p>
-      <h3 style={styles.status}>{event.status}</h3>
-      <p style={styles.location}>{event.location}</p>
+      <div style={styles.content}>
+        <h4 style={isLast ? activeStyles.status : styles.status}>{event.status}</h4>
+        <p style={isLast ? activeStyles.location : styles.location}>{event.location}</p>
+        {event.partner && (
+          <p style={isLast ? activeStyles.partner : styles.partner}>
+            <span style={styles.partnerLabel}>Handled by: </span>{event.partner}
+          </p>
+        )}
+        {event.details && (
+          <p style={isLast ? activeStyles.details : styles.details}>{event.details}</p>
+        )}
+        <p style={isLast ? activeStyles.date : styles.date}>{event.date}</p>
+      </div>
     </div>
   );
 };

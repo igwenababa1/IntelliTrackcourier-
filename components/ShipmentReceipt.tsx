@@ -16,6 +16,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#111827',
     padding: '1.5rem',
     border: '2px solid #374151', // A single, solid, professional border
+    position: 'relative',
+    overflow: 'hidden',
   },
   // --- Header Section ---
   header: {
@@ -88,6 +90,30 @@ const styles: { [key: string]: React.CSSProperties } = {
   itemValue: {
     fontWeight: '600',
   },
+  // Declared items table
+  itemsTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    fontSize: '0.875rem',
+    marginBottom: '1rem',
+  },
+  tableHeader: {
+    textAlign: 'left',
+    borderBottom: '2px solid #374151',
+    padding: '0.5rem',
+    textTransform: 'uppercase',
+    fontSize: '0.75rem',
+  },
+  tableRow: {
+    borderBottom: '1px solid #e5e7eb',
+  },
+  tableCell: {
+    padding: '0.5rem',
+  },
+  tableCellRight: {
+    padding: '0.5rem',
+    textAlign: 'right',
+  },
   // --- Barcode Section ---
   barcodeSection: {
     textAlign: 'center',
@@ -136,6 +162,41 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginTop: '1.5rem',
     transition: 'background-color 0.2s',
   },
+  // Custom seal for receipt
+  customsSeal: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%) rotate(-15deg)',
+    width: '150px',
+    height: '150px',
+    border: '5px double #3b82f6',
+    borderRadius: '50%',
+    color: '#3b82f6',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    fontFamily: '"Times New Roman", Times, serif',
+    fontWeight: 'bold',
+    opacity: 0.15,
+    pointerEvents: 'none',
+  },
+  sealIcon: {
+      width: '48px',
+      height: '48px',
+      marginBottom: '5px'
+  },
+  sealTextTop: {
+      fontSize: '12px',
+      textTransform: 'uppercase',
+      letterSpacing: '1px'
+  },
+  sealTextBottom: {
+      fontSize: '10px',
+      marginTop: '2px',
+  },
 };
 
 const DecorativeBarcode: React.FC = () => {
@@ -166,11 +227,18 @@ const ShipmentReceipt: React.FC<{ details: PackageDetails }> = ({ details }) => 
   const handlePrint = () => {
     window.print();
   };
+  
+  const totalCustomsValue = details.declaredItems.reduce((acc, item) => acc + (item.value * item.quantity), 0);
 
   return (
     <div>
       <div id="shipment-receipt" style={styles.receiptWrapper}>
         <div style={styles.container}>
+           <div style={styles.customsSeal}>
+              <Icon name="shield-check" style={styles.sealIcon} />
+              <span style={styles.sealTextTop}>CUSTOMS CLEARED</span>
+              <span style={styles.sealTextBottom}>W.C.O. VERIFIED</span>
+          </div>
           <div style={styles.header}>
             <div style={styles.headerLeft}>
               <h3 style={styles.title}>Shipment Receipt</h3>
@@ -186,7 +254,7 @@ const ShipmentReceipt: React.FC<{ details: PackageDetails }> = ({ details }) => 
             <div style={styles.section}>
               <h4 style={styles.sectionTitle}>Sender</h4>
               <div style={styles.address}>
-                {details.origin.name}<br/>
+                <strong style={{ fontWeight: 'bold' }}>{details.origin.name}</strong><br/>
                 {details.origin.street}<br/>
                 {details.origin.cityStateZip}
               </div>
@@ -194,7 +262,7 @@ const ShipmentReceipt: React.FC<{ details: PackageDetails }> = ({ details }) => 
             <div style={styles.section}>
               <h4 style={styles.sectionTitle}>Recipient</h4>
               <div style={styles.address}>
-                {details.destination.name}<br/>
+                <strong style={{ fontWeight: 'bold' }}>{details.destination.name}</strong><br/>
                 {details.destination.street}<br/>
                 {details.destination.cityStateZip}
               </div>
@@ -202,24 +270,48 @@ const ShipmentReceipt: React.FC<{ details: PackageDetails }> = ({ details }) => 
           </div>
 
           <div style={styles.section}>
-            <h4 style={styles.sectionTitle}>Package Summary</h4>
+            <h4 style={{ ...styles.sectionTitle, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Icon name="shield-check" style={{ width: '16px', height: '16px', color: '#3b82f6' }} />
+              <span>Official Customs Declaration</span>
+            </h4>
+            <table style={styles.itemsTable}>
+                <thead>
+                    <tr>
+                        <th style={styles.tableHeader}>Description</th>
+                        <th style={{...styles.tableHeader, textAlign: 'center'}}>Qty</th>
+                        <th style={styles.tableCellRight}>Value</th>
+                        <th style={styles.tableCellRight}>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {details.declaredItems.map((item, index) => (
+                        <tr key={index} style={styles.tableRow}>
+                            <td style={styles.tableCell}>{item.description}</td>
+                            <td style={{...styles.tableCell, textAlign: 'center'}}>{item.quantity}</td>
+                            <td style={styles.tableCellRight}>${item.value.toFixed(2)}</td>
+                            <td style={styles.tableCellRight}>${(item.value * item.quantity).toFixed(2)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colSpan={3} style={{...styles.tableCellRight, fontWeight: 'bold'}}>Total Customs Value</td>
+                        <td style={{...styles.tableCellRight, fontWeight: 'bold'}}>${totalCustomsValue.toFixed(2)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+          </div>
+
+          <div style={styles.section}>
+            <h4 style={styles.sectionTitle}>Package &amp; Service Details</h4>
             <div style={styles.summaryGrid}>
-              <p style={styles.item}>
-                <span style={styles.itemLabel}>Service</span>
-                <span style={styles.itemValue}>{details.service}</span>
-              </p>
-              <p style={styles.item}>
-                <span style={styles.itemLabel}>Weight</span>
-                <span style={styles.itemValue}>{details.weight}</span>
-              </p>
-              <p style={styles.item}>
-                <span style={styles.itemLabel}>Dimensions</span>
-                <span style={styles.itemValue}>{details.dimensions}</span>
-              </p>
-              <p style={styles.item}>
-                <span style={styles.itemLabel}>Contents</span>
-                <span style={styles.itemValue}>{details.contents}</span>
-              </p>
+              <p style={styles.item}><span style={styles.itemLabel}>Service</span><span style={styles.itemValue}>{details.service}</span></p>
+              <p style={styles.item}><span style={styles.itemLabel}>Weight</span><span style={styles.itemValue}>{details.weight}</span></p>
+              <p style={styles.item}><span style={styles.itemLabel}>Dimensions</span><span style={styles.itemValue}>{details.dimensions}</span></p>
+              <p style={styles.item}><span style={styles.itemLabel}>Insurance</span><span style={styles.itemValue}>${details.insuranceValue.toFixed(2)}</span></p>
+              {details.specialHandling.length > 0 &&
+                <p style={styles.item}><span style={styles.itemLabel}>Handling</span><span style={styles.itemValue}>{details.specialHandling.join(', ')}</span></p>
+              }
             </div>
           </div>
 
