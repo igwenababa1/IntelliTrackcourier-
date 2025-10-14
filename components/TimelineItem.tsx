@@ -1,20 +1,19 @@
 import React from 'react';
 import { TrackingEvent } from '../types';
-// Fix: Import the IconName type from Icon.tsx
 import Icon, { IconName } from './Icon';
 
 const styles: { [key: string]: React.CSSProperties } = {
   item: {
     padding: '1rem',
-    borderLeft: '3px solid #4b5563',
+    borderLeft: '3px solid var(--border-color)',
     position: 'relative',
     transition: 'background-color 0.3s ease',
     cursor: 'pointer',
     paddingLeft: '2.5rem',
   },
   activeItem: {
-    backgroundColor: 'rgba(79, 70, 229, 0.2)',
-    borderLeft: '3px solid #6366f1',
+    backgroundColor: 'rgba(88, 86, 214, 0.1)',
+    borderLeft: '3px solid var(--primary-color)',
   },
   dot: {
     position: 'absolute',
@@ -23,20 +22,23 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '28px',
     height: '28px',
     borderRadius: '50%',
-    backgroundColor: '#4b5563',
-    border: '3px solid #1f2937',
-    transition: 'background-color 0.3s, transform 0.3s',
+    backgroundColor: 'var(--border-color)',
+    border: '3px solid var(--background-color)',
+    transition: 'background-color 0.3s, transform 0.3s, box-shadow 0.3s',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    color: 'var(--text-secondary-color)',
   },
   activeDot: {
-    backgroundColor: '#6366f1',
+    backgroundColor: 'var(--primary-color)',
     transform: 'scale(1.1)',
+    color: 'white',
+    boxShadow: '0 0 12px var(--glow-color)',
   },
   date: {
     fontSize: '0.875rem',
-    color: '#9ca3af',
+    color: 'var(--text-secondary-color)',
     fontWeight: 500,
     marginBottom: '0.25rem',
   },
@@ -48,7 +50,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   location: {
     fontSize: '0.875rem',
-    color: '#9ca3af',
+    color: 'var(--text-secondary-color)',
   },
 };
 
@@ -57,7 +59,6 @@ interface TimelineItemProps {
   isActive: boolean;
   onClick: () => void;
   itemRef: (el: HTMLDivElement | null) => void;
-  // Fix: Use the correct IconName type for the iconName prop.
   iconName: IconName;
 }
 

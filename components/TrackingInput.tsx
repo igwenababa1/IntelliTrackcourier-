@@ -1,99 +1,117 @@
-import React, { useState } from 'react';
+// Fix: Populate the contents of components/TrackingInput.tsx
+import React, { useState, FormEvent, useEffect, useRef } from 'react';
 import Icon from './Icon';
+import useSound from '../hooks/useSound';
+import { COMMAND_SOUND } from './sounds';
 
 interface TrackingInputProps {
-  onTrack: (trackingId: string) => void;
-  onScanClick: () => void;
+  onTrack: (id: string) => void;
+  onScan: () => void;
+  isLoading: boolean;
+  initialValue?: string;
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
   form: {
     display: 'flex',
-    justifyContent: 'center',
-    gap: '0.75rem',
     width: '100%',
+    maxWidth: '600px',
+    margin: '0 auto',
+    borderRadius: '0.75rem',
+    overflow: 'hidden',
+    border: '1px solid var(--border-color)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    backgroundColor: 'rgba(31, 41, 55, 0.6)',
   },
   input: {
-    padding: '0.75rem 1rem',
-    fontSize: '1rem',
-    backgroundColor: '#1f2937',
-    color: '#e5e7eb',
-    border: '1px solid #4b5563',
-    borderRadius: '0.5rem',
     flexGrow: 1,
+    padding: '1rem 1.25rem',
+    fontSize: '1.125rem',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: 'white',
     outline: 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
   },
   button: {
-    padding: '0.75rem 1.5rem',
-    fontSize: '1rem',
-    fontWeight: 600,
-    backgroundColor: '#4f46e5',
-    color: 'white',
+    padding: '1rem 1.25rem',
     border: 'none',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-  },
-  iconButton: {
-    padding: '0.75rem',
-    fontSize: '1rem',
-    fontWeight: 600,
-    backgroundColor: '#374151',
-    color: 'white',
-    border: '1px solid #4b5563',
-    borderRadius: '0.5rem',
+    backgroundColor: 'transparent',
+    color: 'var(--text-secondary-color)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'background-color 0.2s, border-color 0.2s',
+    transition: 'color 0.2s',
+  },
+  trackButton: {
+    backgroundColor: 'var(--primary-color)',
+    color: 'white',
+    fontWeight: 600,
+    letterSpacing: '0.5px',
+    transition: 'background-color 0.2s',
   }
 };
 
-const TrackingInput: React.FC<TrackingInputProps> = ({ onTrack, onScanClick }) => {
-  const [inputValue, setInputValue] = useState('');
+const TrackingInput: React.FC<TrackingInputProps> = ({ onTrack, onScan, isLoading, initialValue = '' }) => {
+  const [trackingId, setTrackingId] = useState(initialValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [playTrackSound] = useSound(COMMAND_SOUND, 0.4);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    setTrackingId(initialValue);
+  }, [initialValue]);
+
+  useEffect(() => {
+    // Auto-focus the input on mount if it's empty
+    if (!initialValue) {
+      inputRef.current?.focus();
+    }
+  }, [initialValue]);
+
+
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (inputValue.trim()) {
-      onTrack(inputValue.trim());
+    if (trackingId.trim() && !isLoading) {
+      playTrackSound();
+      onTrack(trackingId.trim());
     }
   };
 
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = '#6366f1';
-    e.target.style.boxShadow = '0 0 0 3px rgba(79, 70, 229, 0.4)';
-  };
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = '#4b5563';
-    e.target.style.boxShadow = 'none';
-  };
-
   return (
-    <form onSubmit={handleSubmit} style={styles.form}>
+    <form style={styles.form} onSubmit={handleSubmit}>
       <input
+        ref={inputRef}
         type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        placeholder="Enter tracking ID"
         style={styles.input}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        aria-label="Tracking ID"
+        value={trackingId}
+        onChange={(e) => setTrackingId(e.target.value)}
+        placeholder="Enter Tracking ID (e.g., IT123456789)"
+        disabled={isLoading}
+        aria-label="Tracking ID Input"
       />
-      <button 
-        type="button" 
-        style={styles.iconButton} 
-        onClick={onScanClick}
+      <button
+        type="button"
+        style={styles.button}
+        onClick={onScan}
+        disabled={isLoading}
         title="Scan QR Code"
         aria-label="Scan QR Code"
+        onMouseOver={(e) => { e.currentTarget.style.color = 'white'; }}
+        onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-secondary-color)'; }}
       >
         <Icon name="qrcode" />
       </button>
-      <button type="submit" style={styles.button}>
-        Track
+      <button
+        type="submit"
+        style={{ ...styles.button, ...styles.trackButton }}
+        disabled={isLoading || !trackingId.trim()}
+        aria-label="Track Shipment"
+        onMouseOver={(e) => { if (!isLoading && trackingId.trim()) e.currentTarget.style.backgroundColor = '#6966ff'; }}
+        onMouseOut={(e) => { if (!isLoading && trackingId.trim()) e.currentTarget.style.backgroundColor = 'var(--primary-color)'; }}
+      >
+        {isLoading ? '...' : 'Track'}
       </button>
     </form>
   );

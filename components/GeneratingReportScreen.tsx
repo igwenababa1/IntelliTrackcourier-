@@ -24,7 +24,6 @@ const GeneratingReportScreen: React.FC<GeneratingReportScreenProps> = ({ onCompl
           return prevStep + 1;
         } else {
           clearInterval(timer);
-          // Add a small delay after the last step before completing
           setTimeout(onComplete, 500);
           return prevStep;
         }
@@ -41,7 +40,7 @@ const GeneratingReportScreen: React.FC<GeneratingReportScreenProps> = ({ onCompl
     if (stepIndex === currentStep && currentStep < VERIFICATION_STEPS.length) {
       return <div className="spinner"></div>;
     }
-    return <div style={{ width: '20px', height: '20px' }}></div>; // Placeholder
+    return <div style={{ width: '20px', height: '20px' }}></div>;
   };
 
   return (
@@ -52,7 +51,7 @@ const GeneratingReportScreen: React.FC<GeneratingReportScreenProps> = ({ onCompl
           <li
             key={index}
             className={`report-step ${index <= currentStep ? 'visible' : ''}`}
-            style={{ animationDelay: `${index * 100}ms` }}
+            style={{ animationDelay: `${index * 100}ms`, opacity: 0, transform: 'translateY(10px)' }}
           >
             <div className="report-step-icon">
               {getStepIcon(index)}

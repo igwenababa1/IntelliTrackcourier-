@@ -3,7 +3,7 @@ import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import Icon from './Icon';
 
 export interface VoiceCommand {
-  command: 'track' | 'show_details' | 'cancel_shipment';
+  command: 'track' | 'show_details' | 'cancel_shipment' | 'go_home' | 'log_out' | 'show_journey';
   payload?: string;
 }
 
@@ -75,6 +75,7 @@ const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ onCommand, appS
     if (transcript) {
       processCommand(transcript.toLowerCase());
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transcript]);
 
   useEffect(() => {
@@ -84,6 +85,17 @@ const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ onCommand, appS
   }, [error]);
 
   const processCommand = (text: string) => {
+    // Global commands
+    if (text.includes('go home') || text.includes('go back')) {
+      onCommand({ command: 'go_home' });
+      return;
+    }
+    if (text.includes('log out') || text.includes('sign out')) {
+      onCommand({ command: 'log_out' });
+      return;
+    }
+
+    // Context-specific commands
     if (appState === 'welcome' && text.startsWith('track package')) {
       const payload = text.replace('track package', '').trim();
       if (payload) {
@@ -92,6 +104,8 @@ const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ onCommand, appS
     } else if (appState === 'tracking') {
       if (text.includes('show details')) {
         onCommand({ command: 'show_details' });
+      } else if (text.includes('show journey') || text.includes('show map')) {
+        onCommand({ command: 'show_journey' });
       } else if (text.includes('cancel shipment')) {
         onCommand({ command: 'cancel_shipment' });
       }

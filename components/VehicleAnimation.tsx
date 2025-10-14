@@ -1,55 +1,56 @@
 import React from 'react';
 
 const styles: { [key: string]: React.CSSProperties } = {
-  vehicleContainer: {
-    position: 'absolute',
-    width: '32px',
-    height: '32px',
-    willChange: 'transform, left, top',
-    transition: 'left 0.8s ease-in-out, top 0.8s ease-in-out, transform 0.8s ease-in-out',
-    zIndex: 20, // Ensure it's above the path but below tooltips/controls
-  },
-  vehicleSvg: {
+  container: {
     width: '100%',
-    height: '100%',
-    filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.5))',
+    maxWidth: '400px',
+    margin: '0 auto 1.5rem',
+    overflow: 'hidden',
   },
-  truckBody: {
-    fill: '#4f46e5',
-    stroke: '#c7d2fe',
-    strokeWidth: '1.5px',
-  },
-  truckWindow: {
-    fill: '#9ca3af',
+  svg: {
+    width: '100%',
+    height: 'auto',
   },
 };
 
-interface VehicleAnimationProps {
-  position: { x: number; y: number };
-  rotation: number;
-}
+const keyframes = `
+  @keyframes drive {
+    from { transform: translateX(-150px); }
+    to { transform: translateX(450px); }
+  }
+  @keyframes move-lines {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100px); }
+  }
+`;
 
-const VehicleAnimation: React.FC<VehicleAnimationProps> = ({ position, rotation }) => {
+const TRUCK_SVG = (
+  <g transform="translate(0 2)">
+    <path fill="#4f46e5" d="M42,23H7a1,1,0,0,1-1-1V9A1,1,0,0,1,7,8H36.22a1,1,0,0,1,.73.34l5.36,6.25A1,1,0,0,1,43,15.2V22A1,1,0,0,1,42,23Z" />
+    <path fill="#a5b4fc" d="M35,23H17a1,1,0,0,1-1-1V9a1,1,0,0,1,1-1H35Z" />
+    <circle fill="#1f2937" cx="13" cy="24" r="4" />
+    <circle fill="#e5e7eb" cx="13" cy="24" r="1.5" />
+    <circle fill="#1f2937" cx="35" cy="24" r="4" />
+    <circle fill="#e5e7eb" cx="35"cy="24" r="1.5" />
+  </g>
+);
+
+const VehicleAnimation: React.FC = () => {
   return (
-    <div
-      style={{
-        ...styles.vehicleContainer,
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
-      }}
-      aria-label="Delivery vehicle location"
-    >
-      <svg viewBox="0 0 50 50" style={styles.vehicleSvg}>
-        <g transform="rotate(90 25 25)">
-          <path
-            d="M43.5 31.5H38.5V25C38.5 24.3 38.2 23.6 37.8 23.1L33.3 17.5H29.5V11.5C29.5 10.4 28.6 9.5 27.5 9.5H9.5C8.4 9.5 7.5 10.4 7.5 11.5V31.5H6.5C5.4 31.5 4.5 32.4 4.5 33.5V36.5C4.5 37.6 5.4 38.5 6.5 38.5H11.5C12.6 38.5 13.5 37.6 13.5 36.5V35.5H29.5V36.5C29.5 37.6 30.4 38.5 31.5 38.5H43.5C44.6 38.5 45.5 37.6 45.5 36.5V33.5C45.5 32.4 44.6 31.5 43.5 31.5ZM11.5 35.5V34.5H9.5V35.5H11.5Z M25.5 12.5H26.5V18.5H13.5V12.5H25.5Z M33.5 35.5H31.5V34.5H33.5V35.5Z"
-            style={styles.truckBody}
-          />
-          <path
-            d="M25.5 13.5H14.5V17.5H25.5V13.5Z"
-            style={styles.truckWindow}
-          />
+    <div style={styles.container}>
+      <style>{keyframes}</style>
+      <svg viewBox="0 0 300 50" xmlns="http://www.w3.org/2000/svg" style={styles.svg}>
+        {/* Road */}
+        <path d="M-50 32 H350" stroke="#4b5563" strokeWidth="10" />
+        
+        {/* Dashed Lines */}
+        <g style={{ animation: 'move-lines 3s linear infinite' }}>
+          <path d="M-50 32 H450" stroke="#9ca3af" strokeWidth="1.5" strokeDasharray="20, 30" />
+        </g>
+
+        {/* Truck */}
+        <g style={{ animation: 'drive 8s linear infinite' }}>
+          {TRUCK_SVG}
         </g>
       </svg>
     </div>

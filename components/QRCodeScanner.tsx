@@ -17,17 +17,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     position: 'absolute',
     top: '2rem',
     right: '2rem',
-    background: 'none',
-    border: 'none',
-    color: 'rgba(255, 255, 255, 0.8)',
+    background: 'rgba(0,0,0,0.4)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    color: 'white',
     cursor: 'pointer',
-    padding: '0.5rem',
+    padding: '0.75rem',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    transition: 'background-color 0.2s, transform 0.2s',
   },
 };
 
 const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ onScan, onClose }) => {
   useEffect(() => {
-    // Simulate a successful scan after 2.5 seconds
     const timer = setTimeout(() => {
       onScan(`QR-MOCK-${Math.floor(10000 + Math.random() * 90000)}-XYZ`);
     }, 2500);
@@ -37,7 +42,13 @@ const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ onScan, onClose }) => {
 
   return (
     <div className="qr-scanner-overlay">
-      <button style={styles.closeButton} onClick={onClose} aria-label="Close scanner">
+      <button 
+        style={styles.closeButton} 
+        onClick={onClose} 
+        aria-label="Close scanner"
+        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.6)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; e.currentTarget.style.transform = 'scale(1)'; }}
+      >
         <Icon name="close" />
       </button>
       <div className="qr-scanner-box">

@@ -1,13 +1,9 @@
-export interface Location {
-  lat: number;
-  lng: number;
-}
-
+// Fix: Populate the contents of types.ts
 export interface TrackingEvent {
   date: string;
   status: string;
   location: string;
-  locationCoords: Location;
+  details?: string;
 }
 
 export interface Address {
@@ -21,10 +17,18 @@ export interface PackageDetails {
   id: string;
   status: string;
   estimatedDelivery: string;
+  history: TrackingEvent[];
   origin: Address;
   destination: Address;
-  contents: string; // The description used for generating the image
-  history: TrackingEvent[];
-  deliveryPreference: string;
-  availableDeliveryOptions: string[];
+  service: string;
+  weight: string;
+  dimensions: string;
+  contents: string;
+}
+
+export interface City {
+  name: string;
+  country: string;
+  lat: number;
+  lng: number;
 }

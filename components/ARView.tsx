@@ -33,7 +33,6 @@ const ARView: React.FC<ARViewProps> = ({ onClose }) => {
     startCamera();
 
     return () => {
-      // Cleanup: stop all tracks on the stream
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
@@ -48,7 +47,14 @@ const ARView: React.FC<ARViewProps> = ({ onClose }) => {
       </button>
       <div className="ar-content">
         {error ? (
-            <p style={{ maxWidth: '80%', backgroundColor: 'rgba(0,0,0,0.6)', padding: '1rem', borderRadius: '0.5rem' }}>{error}</p>
+            <p style={{ 
+              maxWidth: '80%', 
+              backgroundColor: 'var(--card-bg-color)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid var(--border-color)',
+              padding: '1.5rem', 
+              borderRadius: '0.75rem' 
+            }}>{error}</p>
         ) : (
           <>
             <div className="package-3d-container">

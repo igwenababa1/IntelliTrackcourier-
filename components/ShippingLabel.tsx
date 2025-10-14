@@ -42,6 +42,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'column',
     textAlign: 'left',
     boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+    position: 'relative',
+    overflow: 'hidden',
   },
   header: {
     display: 'flex',
@@ -120,16 +122,55 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '0.75rem 1.5rem',
     fontSize: '1rem',
     fontWeight: 600,
-    backgroundColor: '#4f46e5',
-    color: 'white',
     border: 'none',
     borderRadius: '0.5rem',
     cursor: 'pointer',
-    transition: 'background-color 0.2s',
+    transition: 'background-color 0.2s, transform 0.1s',
   },
-  closeButton: {
-    backgroundColor: '#374151',
-  }
+  primaryButton: {
+    backgroundColor: 'var(--primary-color)',
+    color: 'white',
+  },
+  secondaryButton: {
+    backgroundColor: '#30363d',
+    color: 'white',
+  },
+  stamp: {
+    position: 'absolute',
+    border: '3px double',
+    padding: '5px',
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    opacity: 0.8,
+    fontFamily: '"Courier New", Courier, monospace',
+    userSelect: 'none',
+  },
+  customsStamp: {
+    bottom: '1in',
+    right: '0.25in',
+    borderRadius: '50%',
+    color: '#059669',
+    borderColor: '#059669',
+    width: '80px',
+    height: '80px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontSize: '10px',
+    lineHeight: 1.2,
+    transform: 'rotate(-10deg)',
+  },
+  insuranceStamp: {
+    bottom: '0.3in',
+    left: '0.3in',
+    color: '#2563eb',
+    borderColor: '#2563eb',
+    padding: '8px 12px',
+    fontSize: '12px',
+    transform: 'rotate(5deg)',
+  },
 };
 
 const Barcode: React.FC = () => {
@@ -234,18 +275,34 @@ const ShippingLabel: React.FC<ShippingLabelProps> = ({ details, onClose }) => {
                <p style={styles.trackingIdText}>{details.id}</p>
             </div>
           </footer>
+          <div style={{...styles.stamp, ...styles.customsStamp}}>
+            <span>Customs</span>
+            <span>Cleared</span>
+            <span style={{fontSize: '8px', marginTop: '3px'}}>{new Date().toLocaleDateString('en-CA')}</span>
+          </div>
+          <div style={{...styles.stamp, ...styles.insuranceStamp}}>
+            Insured
+          </div>
         </div>
         <div style={styles.actions}>
             <button 
               onClick={handleDownloadPdf} 
-              style={styles.button}
+              style={{...styles.button, ...styles.primaryButton}}
               disabled={isGenerating}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#6966ff'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-color)'}
+              onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
+              onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               {isGenerating ? 'Generating...' : 'Download PDF'}
             </button>
             <button 
               onClick={onClose} 
-              style={{...styles.button, ...styles.closeButton}}
+              style={{...styles.button, ...styles.secondaryButton}}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#48515b')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#30363d')}
+              onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
+              onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               Close
             </button>
