@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import Icon from './Icon';
 import { Notification } from '../types';
@@ -9,7 +11,7 @@ interface HeaderProps {
   onTrackClick: () => void;
   supportEmail: string;
   onLogoutClick: () => void;
-  appState: 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment' | 'email_verification';
+  appState: 'welcome' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'generating_report';
   onChatClick: () => void;
   notifications: Notification[];
   unreadCount: number;

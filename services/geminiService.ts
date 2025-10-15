@@ -1,58 +1,9 @@
-import { GoogleGenAI, Chat, Modality, Type, TrackingEvent } from "@google/genai";
-import { AIAnalysisResult, DeliveryEvidence } from "../types";
+import { GoogleGenAI, Chat, Modality, Type } from "@google/genai";
+import { AIAnalysisResult, DeliveryEvidence, TrackingEvent } from "../types";
 
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 let chat: Chat | null = null;
-
-// A list of high-quality, professional prompts to generate convincing service-oriented images.
-const THEMATIC_PROMPTS = [
-  "A satisfied customer smiling as they receive a package from a friendly, uniformed IntelliTrack courier at their doorstep. The scene is bright, professional, and shot with a shallow depth of field.",
-  "A state-of-the-art, clean IntelliTrack warehouse with automated conveyor belts moving packages. Workers in safety vests are efficiently scanning and sorting goods under bright, clean lighting.",
-  "A close-up shot of a customer signing for a digital tablet held by an IntelliTrack courier. Focus on the secure, professional handover of the package.",
-  "A diverse team of logistics professionals collaborating in a modern IntelliTrack control center, with large screens showing world maps and tracking data. The atmosphere is high-tech and efficient.",
-];
-
-/**
- * Generates a thematic, professional image representing the courier service,
- * rather than the literal contents of the package.
- * @param _prompt This parameter is ignored; a random thematic prompt is used instead.
- * @returns A base64 encoded data URL for the generated image, or null on failure.
- */
-export async function generatePackageImage(_prompt: string): Promise<string | null> {
-  try {
-    // Select a random prompt from the predefined list to ensure high-quality, relevant imagery.
-    const randomPrompt = THEMATIC_PROMPTS[Math.floor(Math.random() * THEMATIC_PROMPTS.length)];
-
-    const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: randomPrompt,
-        config: {
-          numberOfImages: 1,
-          outputMimeType: 'image/jpeg',
-          aspectRatio: '1:1',
-        },
-    });
-
-    const base64ImageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-
-    if (base64ImageBytes) {
-      return `data:image/jpeg;base64,${base64ImageBytes}`;
-    } else {
-      console.warn('Gemini API returned no image data.');
-      return null;
-    }
-  } catch (error: any) {
-    // Gracefully handle API errors, especially rate limiting (429).
-    if (error.toString().includes('429') || (error.httpStatus && error.httpStatus === 429)) {
-        console.warn('Gemini API rate limit exceeded. Skipping package image generation.');
-    } else {
-        console.error('Error generating package image with Gemini API:', error);
-    }
-    // Return null to allow the UI to degrade gracefully.
-    return null;
-  }
-}
 
 /**
  * Generates a welcome voice message using the Text-to-Speech API.
@@ -125,6 +76,47 @@ export async function sendMessage(message: string): Promise<string> {
     return "I'm sorry, I'm having trouble connecting to my services right now. Please try again later.";
   }
 }
+
+const THEMATIC_PROMPTS = [
+    "A powerful, cinematic photograph of a massive cargo ship navigating the open ocean at sunrise, containers stacked high, conveying global trade and reliability.",
+    "Dynamic, realistic action shot of a modern cargo semi-trailer truck driving on a highway through mountains at dusk, headlights creating lens flare, representing speed and cross-country logistics.",
+    "An awesome, low-angle photograph of a huge cargo plane taking off from an airport runway, powerful engines blazing against a dramatic sky, symbolizing speed and international reach.",
+    "Hyper-realistic, detailed photo of a busy port at twilight, with massive cranes loading colorful containers onto a cargo ship, showcasing the immense scale of global logistics.",
+    "A sleek, branded courier semi-truck on a rain-slicked highway at night, reflections of neon lights on the wet road, creating a sense of urgency and 24/7 operation.",
+    "A stunning aerial shot of a container ship majestically entering a harbor, guided by tugboats, illustrating precision and care in handling."
+];
+
+/**
+ * Generates a thematic image representing the courier service.
+ * @param itemDescription A summary of the items in the package (no longer used in prompt).
+ * @returns A promise that resolves to a base64 data URL of the generated image.
+ */
+export async function generatePackageImage(itemDescription: string): Promise<string> {
+    try {
+        const prompt = THEMATIC_PROMPTS[Math.floor(Math.random() * THEMATIC_PROMPTS.length)];
+        
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
+            config: {
+                numberOfImages: 1,
+                outputMimeType: 'image/jpeg',
+                aspectRatio: '1:1',
+            },
+        });
+        
+        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+        if (base64ImageBytes) {
+            return `data:image/jpeg;base64,${base64ImageBytes}`;
+        } else {
+            throw new Error('Image generation failed, no image data received.');
+        }
+    } catch (error) {
+        console.error('Error generating package image with Gemini API:', error);
+        throw error;
+    }
+}
+
 
 /**
  * Generates a creative description for an item.
@@ -271,4 +263,39 @@ export async function summarizeShipmentJourney(history: TrackingEvent[]): Promis
     console.error('Error generating journey summary:', error);
     return "Could not generate summary at this time.";
   }
+}
+
+/**
+ * Generates a professional goodbye voice message using the Text-to-Speech API.
+ * @returns A base64 encoded string of the raw audio data.
+ */
+export async function generateGoodbyeSpeech(): Promise<string> {
+    try {
+        const goodbyeText = "Thank you for choosing IntelliTrack. Your session has been securely terminated. We wish you a pleasant day and look forward to assisting you again soon.";
+        
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: `Say in a clear, professional, and reassuring voice: ${goodbyeText}` }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: { voiceName: 'Zephyr' }, // Using the same professional voice as welcome
+                    },
+                },
+            },
+        });
+        
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+        if (base64Audio) {
+            return base64Audio;
+        } else {
+            throw new Error('TTS generation failed for goodbye message, no audio data received.');
+        }
+
+    } catch (error) {
+        console.error('Error generating goodbye speech with Gemini API:', error);
+        throw error;
+    }
 }

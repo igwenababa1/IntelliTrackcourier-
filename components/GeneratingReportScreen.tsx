@@ -8,6 +8,13 @@ const VERIFICATION_STEPS = [
   "Finalizing Secure Tracking Report..."
 ];
 
+const REPORT_BACKGROUND_IMAGES = [
+  'https://images.pexels.com/photos/1089306/pexels-photo-1089306.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Plane arriving
+  'https://images.pexels.com/photos/1117210/pexels-photo-1117210.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',   // Crane loading ship
+  'https://images.pexels.com/photos/4614165/pexels-photo-4614165.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Cargo plane landing
+  'https://images.pexels.com/photos/1267338/pexels-photo-1267338.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Container Ship at Port
+];
+
 const STEP_DURATION = 2000; // ms
 const RING_RADIUS = 160; // in pixels
 
@@ -48,14 +55,15 @@ const GeneratingReportScreen: React.FC<GeneratingReportScreenProps> = ({ onCompl
 
   return (
     <div className="generating-report-container">
-       <video 
-            id="report-video-bg"
-            src="https://videos.pexels.com/video-files/5789456/5789456-hd_1920_1080_25fps.mp4" 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-        ></video>
+       <div className="report-bg">
+            {REPORT_BACKGROUND_IMAGES.map((url, index) => (
+                <div
+                    key={index}
+                    className="report-bg-slide"
+                    style={{ backgroundImage: `url(${url})` }}
+                />
+            ))}
+        </div>
         <div className="report-video-overlay"></div>
 
         <div className="report-content">

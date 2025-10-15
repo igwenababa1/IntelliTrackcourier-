@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import Icon from './Icon';
 import { sendMessage } from '../services/geminiService';
@@ -42,18 +43,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'column',
     maxHeight: '80vh',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: '1rem',
-    right: '1rem',
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-secondary-color)',
-    cursor: 'pointer',
-    padding: '0.5rem',
-    borderRadius: '50%',
-    transition: 'background-color 0.2s, color 0.2s',
   },
   title: {
     fontSize: '1.5rem',
@@ -109,11 +98,9 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, initialP
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <button 
-          style={styles.closeButton} 
+          className="chat-modal-close-button"
           onClick={onClose} 
           aria-label="Close assistant"
-          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = 'white'; }}
-          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary-color)'; }}
         >
           <Icon name="close" />
         </button>

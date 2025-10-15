@@ -1,4 +1,39 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { generateGoodbyeSpeech } from '../services/geminiService';
+
+// --- Audio Decoding Utilities (as per Gemini API guidelines) ---
+
+// Decodes a base64 string to a Uint8Array.
+function decode(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+// Decodes raw PCM audio data into an AudioBuffer.
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
 
 interface LogoutScreenProps {
   onComplete: () => void;
@@ -7,21 +42,51 @@ interface LogoutScreenProps {
 const LOGOUT_DURATION = 5000; // 5 seconds
 
 const LOGOUT_BACKGROUND_IMAGES = [
-  'https://images.pexels.com/photos/6152261/pexels-photo-6152261.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Cargo being unloaded
-  'https://images.pexels.com/photos/13098993/pexels-photo-13098993.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Nose of cargo plane open
-  'https://images.pexels.com/photos/5952227/pexels-photo-5952227.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Cargo containers on tarmac
+  'https://images.pexels.com/photos/1250355/pexels-photo-1250355.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // FedEx plane taking off with motion blur
+  'https://images.pexels.com/photos/4703/sky-aircraft-plane-jet.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Cargo plane climbing into the sky
+  'https://images.pexels.com/photos/358319/pexels-photo-358319.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2', // Plane on runway at sunset, ready for takeoff
   'https://images.pexels.com/photos/804475/pexels-photo-804475.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',   // Cargo plane from below, taking off
 ];
 
 
 const LogoutScreen: React.FC<LogoutScreenProps> = ({ onComplete }) => {
+  const [audioContext] = useState(() => new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 }));
+
   useEffect(() => {
+    
+    const playGoodbyeMessage = async () => {
+      try {
+        const base64Audio = await generateGoodbyeSpeech();
+        const decodedBytes = decode(base64Audio);
+        const buffer = await decodeAudioData(decodedBytes, audioContext, 24000, 1);
+        
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start();
+      } catch (error) {
+        console.error("Failed to play goodbye message:", error);
+      }
+    };
+    
+    playGoodbyeMessage();
+
     const timer = setTimeout(() => {
       onComplete();
     }, LOGOUT_DURATION);
 
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+    return () => {
+        clearTimeout(timer);
+        // Clean up audio context to prevent resource leaks
+        if(audioContext.state !== 'closed') {
+            audioContext.close();
+        }
+    };
+  }, [onComplete, audioContext]);
 
   return (
     <div className="logout-screen-container">

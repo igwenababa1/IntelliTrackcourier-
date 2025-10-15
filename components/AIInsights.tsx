@@ -2,7 +2,19 @@ import React, { useState } from 'react';
 import { TrackingEvent } from '../types';
 import { summarizeShipmentJourney } from '../services/geminiService';
 import Icon from './Icon';
-import Loader from './Loader';
+
+const SkeletonElement = ({ style }: { style?: React.CSSProperties }) => (
+  <div className="skeleton" style={{ ...style, borderRadius: '0.25rem' }}></div>
+);
+
+const AIInsightsSkeleton: React.FC = () => (
+    <div className="ai-insights-summary" style={{ backgroundColor: 'transparent', padding: 0 }}>
+        <SkeletonElement style={{ width: '100%', height: '1rem', marginBottom: '0.75rem' }} />
+        <SkeletonElement style={{ width: '100%', height: '1rem', marginBottom: '0.75rem' }} />
+        <SkeletonElement style={{ width: '80%', height: '1rem' }} />
+    </div>
+);
+
 
 interface AIInsightsProps {
   history: TrackingEvent[];
@@ -33,7 +45,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ history }) => {
       </h4>
       <div className="ai-insights-content">
         {isLoading ? (
-          <Loader />
+          <AIInsightsSkeleton />
         ) : summary ? (
           <p className="ai-insights-summary">{summary}</p>
         ) : (

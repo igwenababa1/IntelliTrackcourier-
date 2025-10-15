@@ -37,7 +37,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onTrack, onScan, isLoading, initialTrackingId }) => {
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="welcome-screen-container">
       <VehicleAnimation />
       <h1 style={styles.title}>Intelligent Shipment Tracking</h1>
       <p style={styles.subtitle}>

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { PackageDetails } from '../types';
 import jsPDF from 'jspdf';
@@ -111,29 +112,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '9pt',
     letterSpacing: '2px',
     marginTop: '0.05in',
-  },
-  actions: {
-    marginTop: '1.5rem',
-    display: 'flex',
-    gap: '1rem',
-    justifyContent: 'center',
-  },
-  button: {
-    padding: '0.75rem 1.5rem',
-    fontSize: '1rem',
-    fontWeight: 600,
-    border: 'none',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s, transform 0.1s',
-  },
-  primaryButton: {
-    backgroundColor: 'var(--primary-color)',
-    color: 'white',
-  },
-  secondaryButton: {
-    backgroundColor: '#30363d',
-    color: 'white',
   },
   stamp: {
     position: 'absolute',
@@ -284,25 +262,17 @@ const ShippingLabel: React.FC<ShippingLabelProps> = ({ details, onClose }) => {
             Insured
           </div>
         </div>
-        <div style={styles.actions}>
+        <div className="label-actions">
             <button 
               onClick={handleDownloadPdf} 
-              style={{...styles.button, ...styles.primaryButton}}
+              className="label-action-button label-primary-button"
               disabled={isGenerating}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#6966ff'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-color)'}
-              onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
-              onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               {isGenerating ? 'Generating...' : 'Download PDF'}
             </button>
             <button 
               onClick={onClose} 
-              style={{...styles.button, ...styles.secondaryButton}}
-              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#48515b')}
-              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#30363d')}
-              onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
-              onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              className="label-action-button label-secondary-button"
             >
               Close
             </button>

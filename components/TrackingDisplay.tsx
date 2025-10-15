@@ -1,7 +1,9 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { PackageDetails, TrackingEvent } from '../types';
-import { generatePackageImage } from '../services/geminiService';
 import { getJourneyPath } from '../services/shipmentService';
+import { generatePackageImage } from '../services/geminiService';
 import ShipmentProgressBar from './ShipmentProgressBar';
 import TimelineItem from './TimelineItem';
 import Icon, { IconName } from './Icon';
@@ -35,10 +37,10 @@ const getIconForStatus = (status: string): IconName => {
 };
 
 const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNewSearch, onShowChat, setPackageDetails, onAddEvidence }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isImageLoading, setIsImageLoading] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>('journey');
   const [isZenMode, setIsZenMode] = useState(false);
+  const [packageImage, setPackageImage] = useState<string | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState(true);
 
 
   const getContentsSummary = (details: PackageDetails): string => {
@@ -46,27 +48,25 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
     const descriptions = details.declaredItems.map(item => item.description);
     return descriptions.join(', ');
   }
-
+  
   useEffect(() => {
     const fetchImage = async () => {
-      const contentsSummary = getContentsSummary(packageDetails);
-      if (contentsSummary !== 'No items declared') {
+        if (!packageDetails) return;
         setIsImageLoading(true);
         try {
-          const url = await generatePackageImage(contentsSummary);
-          setImageUrl(url);
+            const summary = getContentsSummary(packageDetails);
+            const imageUrl = await generatePackageImage(summary);
+            setPackageImage(imageUrl);
         } catch (error) {
-          console.error('Failed to generate package image:', error);
-          setImageUrl(null); // Set to null on error to hide loader
+            console.error("Failed to generate package image:", error);
+            setPackageImage(null); // Set to null to show an error state if needed
         } finally {
-          setIsImageLoading(false);
+            setIsImageLoading(false);
         }
-      } else {
-        setIsImageLoading(false);
-      }
     };
     fetchImage();
-  }, [packageDetails.declaredItems]);
+  }, [packageDetails]);
+
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -198,14 +198,19 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
         </div>
         
         <aside className="sidebar-panel">
-          <div className="package-image-container">
-            {isImageLoading ? <Loader /> : imageUrl ? (
-              <img src={imageUrl} alt={getContentsSummary(packageDetails)} className="package-image" />
+          <div className={`package-image-container ${isImageLoading ? 'loading' : ''}`}>
+             {isImageLoading ? (
+                <div className="image-placeholder">
+                    <Icon name="package" />
+                    <span>Generating image...</span>
+                </div>
+            ) : packageImage ? (
+                <img src={packageImage} alt="AI generated representation of package contents" className="package-image" />
             ) : (
-              <div className="image-placeholder">
-                <Icon name="camera" />
-                <span>Image not available</span>
-              </div>
+                <div className="image-placeholder">
+                    <Icon name="alert-triangle" />
+                    <span>Image failed</span>
+                </div>
             )}
             <h3>{getContentsSummary(packageDetails)}</h3>
           </div>

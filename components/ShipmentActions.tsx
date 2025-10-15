@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { PackageDetails } from '../types';
 import Icon from './Icon';
@@ -10,47 +11,6 @@ interface ShipmentActionsProps {
   onShowChat: (prompt: string) => void;
   onAddEvidence: (type: 'photo' | 'signature' | 'audio', data: string) => void;
 }
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    width: '100%',
-    padding: '1rem',
-    backgroundColor: 'rgba(31, 41, 55, 0.7)',
-    borderRadius: '0.75rem',
-    border: '1px solid var(--border-color)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    boxSizing: 'border-box',
-    marginBottom: '1rem',
-  },
-  title: {
-    fontSize: '1rem',
-    fontWeight: 600,
-    color: 'white',
-    marginBottom: '1rem',
-    borderBottom: '1px solid var(--border-color)',
-    paddingBottom: '0.75rem',
-  },
-  buttonsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: '1rem',
-  },
-  button: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '0.75rem 1rem',
-    fontSize: '0.9rem',
-    fontWeight: 500,
-    backgroundColor: '#21262d',
-    color: 'white',
-    border: '1px solid var(--border-color)',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s, border-color 0.2s',
-  },
-};
 
 /**
  * Renders action buttons for a shipment, such as viewing labels, AR, and confirming delivery.
@@ -69,32 +29,26 @@ const ShipmentActions: React.FC<ShipmentActionsProps> = ({ packageDetails, onSho
 
   return (
     <>
-      <div style={styles.container}>
-        <h3 style={styles.title}>Manage Shipment</h3>
-        <div style={styles.buttonsGrid}>
+      <div className="shipment-actions-container">
+        <h3 className="shipment-actions-title">Manage Shipment</h3>
+        <div className="shipment-actions-grid">
           <button
-            style={styles.button}
+            className="shipment-action-button"
             onClick={() => setIsLabelVisible(true)}
-            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#30363d'; e.currentTarget.style.borderColor = 'var(--primary-color)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#21262d'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
           >
             <Icon name="printer" />
             <span>Shipping Label</span>
           </button>
           <button
-            style={styles.button}
+            className="shipment-action-button"
             onClick={() => onShowChat(`I have a question about my shipment, ${packageDetails.id}.`)}
-            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#30363d'; e.currentTarget.style.borderColor = 'var(--primary-color)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#21262d'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
           >
             <Icon name="edit-3" />
             <span>Ask Assistant</span>
           </button>
           <button
-            style={styles.button}
+            className="shipment-action-button"
             onClick={() => setIsARVisible(true)}
-            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#30363d'; e.currentTarget.style.borderColor = 'var(--primary-color)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#21262d'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
           >
             <Icon name="camera" />
             <span>View in AR</span>
@@ -103,7 +57,7 @@ const ShipmentActions: React.FC<ShipmentActionsProps> = ({ packageDetails, onSho
         
         {isDelivered && (
           <div style={{ marginTop: '1.5rem' }}>
-             <h3 style={styles.title}>Confirm Delivery</h3>
+             <h3 className="shipment-actions-title">Confirm Delivery</h3>
              <DeliveryConfirmation onConfirm={handleDeliveryConfirm} />
           </div>
         )}

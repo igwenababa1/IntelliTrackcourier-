@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import Icon from './Icon';
 
@@ -13,22 +14,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '1.125rem',
     fontWeight: 500,
   },
-  closeButton: {
-    position: 'absolute',
-    top: '2rem',
-    right: '2rem',
-    background: 'rgba(0,0,0,0.4)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: 'white',
-    cursor: 'pointer',
-    padding: '0.75rem',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-    transition: 'background-color 0.2s, transform 0.2s',
-  },
 };
 
 const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ onScan, onClose }) => {
@@ -43,11 +28,9 @@ const QRCodeScanner: React.FC<QRCodeScannerProps> = ({ onScan, onClose }) => {
   return (
     <div className="qr-scanner-overlay">
       <button 
-        style={styles.closeButton} 
+        className="qr-scanner-close-button"
         onClick={onClose} 
         aria-label="Close scanner"
-        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.6)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.4)'; e.currentTarget.style.transform = 'scale(1)'; }}
       >
         <Icon name="close" />
       </button>

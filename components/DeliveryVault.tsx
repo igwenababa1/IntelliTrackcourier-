@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { PackageDetails, AIAnalysisResult } from '../types';
+import { PackageDetails } from '../types';
 import { analyzeDeliveryEvidence } from '../services/geminiService';
 import Icon from './Icon';
-import Loader from './Loader';
+
+const SkeletonElement = ({ style }: { style?: React.CSSProperties }) => (
+  <div className="skeleton" style={{ ...style, borderRadius: '0.25rem' }}></div>
+);
+
+const AIAnalysisSkeleton = () => (
+  <div>
+    <SkeletonElement style={{ width: '90%', height: '1.2rem', marginBottom: '1rem', opacity: 0.8 }} />
+    <SkeletonElement style={{ width: '100%', height: '1rem', marginBottom: '0.5rem', opacity: 0.6 }} />
+    <SkeletonElement style={{ width: '70%', height: '1rem', marginBottom: '1.5rem', opacity: 0.6 }} />
+    <SkeletonElement style={{ width: '50%', height: '1.1rem', marginBottom: '1rem', opacity: 0.7 }} />
+    <SkeletonElement style={{ width: '80%', height: '1rem', marginBottom: '0.5rem', opacity: 0.5 }} />
+    <SkeletonElement style={{ width: '75%', height: '1rem', opacity: 0.5 }} />
+  </div>
+);
+
 
 interface DeliveryVaultProps {
   details: PackageDetails;
@@ -84,7 +99,7 @@ const DeliveryVault: React.FC<DeliveryVaultProps> = ({ details, setPackageDetail
                 <h3 className="ai-analysis-title">
                     <Icon name="shield-check" /> AI Verification Summary
                 </h3>
-                {isLoading && <Loader />}
+                {isLoading && <AIAnalysisSkeleton />}
                 {error && <p style={{color: '#ef4444'}}>{error}</p>}
                 {deliveryEvidence.aiAnalysis && (
                     <div>

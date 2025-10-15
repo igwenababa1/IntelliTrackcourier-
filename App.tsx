@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { PackageDetails, NewShipmentData, Notification } from './types';
 import { getShipmentDetails, createShipment, addDeliveryEvidence } from './services/shipmentService';
@@ -6,7 +8,7 @@ import { simulateNextEvent } from './services/shipmentSimulator';
 import Header from './components/Header';
 import WelcomeScreen from './components/WelcomeScreen';
 import TrackingDisplay from './components/TrackingDisplay';
-import GeneratingReportScreen from './components/GeneratingReportScreen';
+import TrackingDisplaySkeleton from './components/TrackingDisplaySkeleton';
 import QRCodeScanner from './components/QRCodeScanner';
 import ChatAssistant from './components/ChatAssistant';
 import LogoutConfirmation from './components/LogoutConfirmation';
@@ -21,6 +23,8 @@ import AppBackground from './components/AppBackground';
 import LandingPage from './components/LandingPage';
 import PackageIntroAnimation from './components/PackageIntroAnimation';
 import EmailVerification from './components/EmailVerification';
+import Footer from './components/Footer';
+import GeneratingReportScreen from './components/GeneratingReportScreen';
 
 type AppState = 'landing' | 'intro_animation' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'logging_out';
 
@@ -99,36 +103,39 @@ const App: React.FC = () => {
   const handleIntroAnimationComplete = () => {
     setAppState('welcome');
   };
+  
+  const handleReportGenerationComplete = useCallback(async () => {
+    setIsLoading(true);
+    setAppState('tracking'); // Move to tracking screen to show skeleton
+    
+    try {
+      const details = await getShipmentDetails(trackingId);
+      if (details) {
+        playSuccessSound();
+        setPackageDetails(details);
+        initializeChat(details.id);
+        setLastNotifiedStatus(details.status);
+      } else {
+        setError(`No shipment found for Tracking ID: ${trackingId}. Please check the ID and try again.`);
+        setAppState('error');
+      }
+    } catch (e) {
+      setError('An unexpected error occurred. Please try again later.');
+      setAppState('error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [trackingId, playSuccessSound]);
+
 
   const handleTrack = useCallback(async (id: string) => {
     if (!id) return;
-    setIsLoading(true);
     setError(null);
     setTrackingId(id);
+    setPackageDetails(null); 
     setAppState('generating_report');
+  }, []);
 
-    // Artificial delay for the "generating report" screen
-    setTimeout(async () => {
-      try {
-        const details = await getShipmentDetails(id);
-        if (details) {
-          playSuccessSound();
-          setPackageDetails(details);
-          setAppState('tracking');
-          initializeChat(details.id);
-          setLastNotifiedStatus(details.status); // Initialize status tracking for notifications
-        } else {
-          setError(`No shipment found for Tracking ID: ${id}. Please check the ID and try again.`);
-          setAppState('error');
-        }
-      } catch (e) {
-        setError('An unexpected error occurred. Please try again later.');
-        setAppState('error');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 8500); // Duration of the generating report animation
-  }, [playSuccessSound]);
 
   // Live simulation effect for package updates
   useEffect(() => {
@@ -263,9 +270,12 @@ const App: React.FC = () => {
       case 'intro_animation':
         return <PackageIntroAnimation onAnimationComplete={handleIntroAnimationComplete} />;
       case 'generating_report':
-        return <GeneratingReportScreen onComplete={() => {}} />; // onComplete is handled by handleTrack timeout
+        return <GeneratingReportScreen onComplete={handleReportGenerationComplete} />;
       case 'tracking':
-        return packageDetails ? <TrackingDisplay packageDetails={packageDetails} onNewSearch={resetToHome} onShowChat={handleShowChat} setPackageDetails={setPackageDetails} onAddEvidence={handleAddEvidence} /> : null;
+        if (isLoading || !packageDetails) {
+            return <TrackingDisplaySkeleton />;
+        }
+        return <TrackingDisplay packageDetails={packageDetails} onNewSearch={resetToHome} onShowChat={handleShowChat} setPackageDetails={setPackageDetails} onAddEvidence={handleAddEvidence} />;
       case 'create_shipment':
         return <CreateShipment onCreateShipment={handleCreateShipment} isLoading={isLoading} />;
       case 'email_verification':
@@ -305,7 +315,7 @@ const App: React.FC = () => {
        {showHeader && <Header 
         onHomeClick={resetToHome}
         onNewShipmentClick={handleGoToCreateShipment}
-        onTrackClick={() => appState === 'tracking' ? {} : handleTrack(trackingId || 'IT123456789')}
+        onTrackClick={() => appState === 'tracking' || appState === 'generating_report' ? {} : handleTrack(trackingId || 'IT123456789')}
         supportEmail="support@intellitrack.dev"
         onLogoutClick={handleStartLogout}
         appState={appState}
@@ -335,6 +345,7 @@ const App: React.FC = () => {
         onCancel={() => setIsLogoutConfirmOpen(false)}
       />
       {showHeader && <VoiceCommandButton onCommand={handleVoiceCommand} appState={appState === 'tracking' ? 'tracking' : 'welcome'} />}
+      {showHeader && <Footer />}
     </div>
   );
 };

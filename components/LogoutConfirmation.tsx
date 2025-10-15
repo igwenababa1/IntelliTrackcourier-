@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Icon from './Icon';
 
@@ -60,24 +61,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '1rem',
     justifyContent: 'center',
   },
-  button: {
-    padding: '0.75rem 1.5rem',
-    fontSize: '1rem',
-    fontWeight: 600,
-    border: 'none',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    minWidth: '120px',
-    transition: 'background-color 0.2s, transform 0.1s',
-  },
-  confirmButton: {
-    backgroundColor: '#dc2626',
-    color: 'white',
-  },
-  cancelButton: {
-    backgroundColor: '#30363d',
-    color: 'white',
-  },
 };
 
 const LogoutConfirmation: React.FC<LogoutConfirmationProps> = ({ isOpen, onConfirm, onCancel }) => {
@@ -95,22 +78,14 @@ const LogoutConfirmation: React.FC<LogoutConfirmationProps> = ({ isOpen, onConfi
         <p style={styles.message}>Are you sure you want to log out and end your session?</p>
         <div style={styles.buttonContainer}>
             <button 
-                style={{...styles.button, ...styles.cancelButton}} 
+                className="logout-action-button logout-cancel-button"
                 onClick={onCancel}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#48515b')}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#30363d')}
-                onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
-                onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
                 Cancel
             </button>
             <button 
-                style={{...styles.button, ...styles.confirmButton}} 
+                className="logout-action-button logout-confirm-button"
                 onClick={onConfirm}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
-                onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
-                onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
                 Log Out
             </button>
