@@ -42,6 +42,7 @@ export interface PackageDetails {
   declaredItems: DeclaredItem[];
   insuranceValue: number;
   specialHandling: string[];
+  advancedOptions: string[];
 }
 
 export type ServiceOption = 'Standard' | 'Express' | 'Overnight' | 'Same-Day' | 'Weekend';
@@ -55,4 +56,5 @@ export interface NewShipmentData {
   declaredItems: DeclaredItem[];
   insuranceValue: number;
   specialHandling: string[];
+  advancedOptions: string[];
 }

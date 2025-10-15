@@ -34,6 +34,7 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
     ],
     insuranceValue: 500,
     specialHandling: ['Fragile', 'Handle with Care'],
+    advancedOptions: ['Extended Warranty', 'Tamper-Proof Seal'],
   },
   'IT987654321': {
     id: 'IT987654321',
@@ -66,6 +67,7 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
     ],
     insuranceValue: 100,
     specialHandling: [],
+    advancedOptions: [],
   },
   'QR-MOCK-34159-XYZ': {
     id: 'QR-MOCK-34159-XYZ',
@@ -98,6 +100,7 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
     ],
     insuranceValue: 0,
     specialHandling: ['Fragile'],
+    advancedOptions: [],
   },
 };
 

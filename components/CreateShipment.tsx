@@ -22,6 +22,13 @@ const INSURANCE_COSTS: Record<number, number> = {
     1000: 25,
 };
 
+const ADVANCED_OPTION_COSTS: Record<string, number> = {
+    'Extended Warranty': 10,
+    'Tamper-Proof Seal': 5,
+    'Secure Vault Storage': 20,
+    'Priority Security Screening': 12
+};
+
 const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoading }) => {
   const [origin, setOrigin] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '' });
   const [destination, setDestination] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '' });
@@ -33,12 +40,14 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
   ]);
   const [insuranceValue, setInsuranceValue] = useState<number>(0);
   const [specialHandling, setSpecialHandling] = useState<string[]>([]);
+  const [advancedOptions, setAdvancedOptions] = useState<string[]>([]);
   
   const totalCost = useMemo(() => {
     const serviceCost = SERVICE_COSTS[service];
     const insuranceCost = INSURANCE_COSTS[insuranceValue];
-    return serviceCost + insuranceCost;
-  }, [service, insuranceValue]);
+    const advancedCost = advancedOptions.reduce((acc, opt) => acc + (ADVANCED_OPTION_COSTS[opt] || 0), 0);
+    return serviceCost + insuranceCost + advancedCost;
+  }, [service, insuranceValue, advancedOptions]);
 
   const handleAddressChange = (type: 'origin' | 'destination', field: keyof Address, value: string) => {
     const setter = type === 'origin' ? setOrigin : setDestination;
@@ -70,6 +79,14 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
       }
   }
 
+  const handleAdvancedOptionChange = (option: string, checked: boolean) => {
+      if (checked) {
+          setAdvancedOptions(prev => [...prev, option]);
+      } else {
+          setAdvancedOptions(prev => prev.filter(item => item !== option));
+      }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading || !isFormValid()) return;
@@ -82,7 +99,8 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
       service,
       declaredItems,
       insuranceValue,
-      specialHandling
+      specialHandling,
+      advancedOptions
     };
     onCreateShipment(shipmentData);
   };
@@ -140,7 +158,7 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
         {/* Customs Declaration */}
         <section className="form-section">
             <h2 className="form-section-title">
-              <Icon name="shield-check" className="title-icon" />
+              <Icon name="file-text" className="title-icon" />
               <span>Official Customs Declaration</span>
             </h2>
             <p className="form-section-subtitle">
@@ -174,13 +192,24 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
                     ))}
                 </div>
             </div>
-             <div>
+             <div style={{marginBottom: '2rem'}}>
                 <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '600', color: 'white' }}>Special Handling</label>
                 <div className="options-group">
                     {['Fragile', 'Perishable', 'Handle with Care', 'This Side Up'].map(opt => (
                         <label key={opt} className="checkbox-option">
                             <input type="checkbox" checked={specialHandling.includes(opt)} onChange={e => handleHandlingChange(opt, e.target.checked)} />
                             {opt}
+                        </label>
+                    ))}
+                </div>
+            </div>
+             <div>
+                <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '600', color: 'white' }}>Warranty & Security</label>
+                <div className="options-group">
+                    {Object.entries(ADVANCED_OPTION_COSTS).map(([opt, cost]) => (
+                        <label key={opt} className="checkbox-option">
+                            <input type="checkbox" checked={advancedOptions.includes(opt)} onChange={e => handleAdvancedOptionChange(opt, e.target.checked)} />
+                            {opt} (+${cost})
                         </label>
                     ))}
                 </div>

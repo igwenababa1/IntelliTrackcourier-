@@ -246,7 +246,7 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
            {/* Package Contents Details */}
           <section className="sidebar-section">
             <h4 className="sidebar-section-title">
-              <Icon name="shield-check" className="title-icon" />
+              <Icon name="file-text" className="title-icon" />
               <span>Customs Declaration</span>
             </h4>
             <div className="sidebar-section-content">
@@ -277,6 +277,21 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
               )}
             </div>
           </section>
+          
+          {/* Warranty & Security */}
+          {packageDetails.advancedOptions && packageDetails.advancedOptions.length > 0 && (
+            <section className="sidebar-section">
+              <h4 className="sidebar-section-title">
+                <Icon name="shield-check" className="title-icon" />
+                <span>Warranty &amp; Security</span>
+              </h4>
+              <div className="sidebar-section-content">
+                <div className="special-handling-tags">
+                  {packageDetails.advancedOptions.map(tag => <span key={tag} className="handling-tag">{tag}</span>)}
+                </div>
+              </div>
+            </section>
+          )}
 
 
           <ShipmentActions packageDetails={packageDetails} onShowChat={onShowChat} />

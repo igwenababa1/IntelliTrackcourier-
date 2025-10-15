@@ -10,6 +10,7 @@ import GeneratingReportScreen from './components/GeneratingReportScreen';
 import QRCodeScanner from './components/QRCodeScanner';
 import ChatAssistant from './components/ChatAssistant';
 import LogoutConfirmation from './components/LogoutConfirmation';
+import LogoutWarning from './components/LogoutWarning';
 import VoiceCommandButton, { VoiceCommand } from './components/VoiceCommandButton';
 import TrackingBackground from './components/TrackingBackground';
 import CreateShipment from './components/CreateShipment';
@@ -19,6 +20,8 @@ import AppBackground from './components/AppBackground';
 import LandingPage from './components/LandingPage';
 
 type AppState = 'landing' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
+
+const LOGOUT_COUNTDOWN_SECONDS = 5;
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('landing');
@@ -32,7 +35,9 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInitialPrompt, setChatInitialPrompt] = useState('');
   
-  // Logout confirmation state
+  // Logout states
+  const [isLogoutWarningVisible, setIsLogoutWarningVisible] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(LOGOUT_COUNTDOWN_SECONDS);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   // Sound effect
@@ -46,6 +51,20 @@ const App: React.FC = () => {
           setAppState('landing');
       }
   }, []);
+  
+  // Countdown timer effect for logout warning
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (isLogoutWarningVisible && logoutCountdown > 0) {
+      timer = setTimeout(() => {
+        setLogoutCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (isLogoutWarningVisible && logoutCountdown === 0) {
+      setIsLogoutWarningVisible(false);
+      setIsLogoutConfirmOpen(true);
+    }
+    return () => clearTimeout(timer);
+  }, [isLogoutWarningVisible, logoutCountdown]);
 
   const handleProceedFromLanding = () => {
     sessionStorage.setItem('hasVisited', 'true');
@@ -142,7 +161,18 @@ const App: React.FC = () => {
       setIsChatOpen(true);
   }
   
-  const handleLogout = () => {
+  const handleStartLogout = () => {
+    setLogoutCountdown(LOGOUT_COUNTDOWN_SECONDS);
+    setIsLogoutWarningVisible(true);
+    setIsLogoutConfirmOpen(false);
+  };
+
+  const handleCancelLogout = () => {
+    setIsLogoutWarningVisible(false);
+    setLogoutCountdown(LOGOUT_COUNTDOWN_SECONDS);
+  };
+  
+  const handleConfirmLogout = () => {
       console.log("Logging out...");
       setIsLogoutConfirmOpen(false);
       // In a real app, you'd clear tokens, etc.
@@ -161,7 +191,7 @@ const App: React.FC = () => {
         resetToHome();
         break;
       case 'log_out':
-        setIsLogoutConfirmOpen(true);
+        handleStartLogout();
         break;
       // Add cases for other commands if needed
     }
@@ -216,7 +246,7 @@ const App: React.FC = () => {
         onNewShipmentClick={handleGoToCreateShipment}
         onTrackClick={() => appState === 'tracking' ? {} : handleTrack(trackingId || 'IT123456789')}
         supportEmail="support@intellitrack.dev"
-        onLogoutClick={() => setIsLogoutConfirmOpen(true)}
+        onLogoutClick={handleStartLogout}
         appState={appState}
         onChatClick={() => handleShowChat()}
        />}
@@ -230,9 +260,14 @@ const App: React.FC = () => {
         onClose={() => setIsChatOpen(false)}
         initialPrompt={chatInitialPrompt}
       />
+      <LogoutWarning
+        isVisible={isLogoutWarningVisible}
+        countdown={logoutCountdown}
+        onCancel={handleCancelLogout}
+      />
       <LogoutConfirmation 
         isOpen={isLogoutConfirmOpen}
-        onConfirm={handleLogout}
+        onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutConfirmOpen(false)}
       />
       {showHeader && <VoiceCommandButton onCommand={handleVoiceCommand} appState={appState === 'tracking' ? 'tracking' : 'welcome'} />}
