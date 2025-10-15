@@ -1,6 +1,4 @@
-
-
-import { GoogleGenAI, Chat } from "@google/genai";
+import { GoogleGenAI, Chat, Modality } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 let chat: Chat | null = null;
@@ -47,6 +45,42 @@ export async function generatePackageImage(_prompt: string): Promise<string> {
     throw error;
   }
 }
+
+/**
+ * Generates a welcome voice message using the Text-to-Speech API.
+ * @returns A base64 encoded string of the raw audio data.
+ */
+export async function generateWelcomeSpeech(): Promise<string> {
+    try {
+        const welcomeText = "Welcome to IntelliTrack. The world's most advanced, secure, and reliable courier service. We combine global logistics with real-time AI to give you unparalleled insight and peace of mind. Let's get started.";
+        
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: welcomeText }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: { voiceName: 'Zephyr' }, // A professional and clear voice
+                    },
+                },
+            },
+        });
+        
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+
+        if (base64Audio) {
+            return base64Audio;
+        } else {
+            throw new Error('TTS generation failed, no audio data received.');
+        }
+
+    } catch (error) {
+        console.error('Error generating welcome speech with Gemini API:', error);
+        throw error;
+    }
+}
+
 
 /**
  * Initializes a new chat session with the Gemini API.

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { PackageDetails, NewShipmentData } from './types';
 import { getShipmentDetails, createShipment } from './services/shipmentService';
@@ -18,11 +16,12 @@ import CreateShipment from './components/CreateShipment';
 import useSound from './hooks/useSound';
 import { SUCCESS_SOUND } from './components/sounds';
 import AppBackground from './components/AppBackground';
+import LandingPage from './components/LandingPage';
 
-type AppState = 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
+type AppState = 'landing' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
 
 const App: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>('welcome');
+  const [appState, setAppState] = useState<AppState>('landing');
   const [packageDetails, setPackageDetails] = useState<PackageDetails | null>(null);
   const [trackingId, setTrackingId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +37,20 @@ const App: React.FC = () => {
 
   // Sound effect
   const [playSuccessSound] = useSound(SUCCESS_SOUND, 0.5);
+  
+  // Check for first visit in session
+  useEffect(() => {
+      if (sessionStorage.getItem('hasVisited')) {
+          setAppState('welcome');
+      } else {
+          setAppState('landing');
+      }
+  }, []);
+
+  const handleProceedFromLanding = () => {
+    sessionStorage.setItem('hasVisited', 'true');
+    setAppState('welcome');
+  };
 
   const handleTrack = useCallback(async (id: string) => {
     if (!id) return;
@@ -160,6 +173,8 @@ const App: React.FC = () => {
     }
 
     switch (appState) {
+      case 'landing':
+        return <LandingPage onProceed={handleProceedFromLanding} />;
       case 'generating_report':
         return <GeneratingReportScreen onComplete={() => {}} />; // onComplete is handled by handleTrack timeout
       case 'tracking':
@@ -189,13 +204,14 @@ const App: React.FC = () => {
   };
 
   const isWelcomeState = appState === 'welcome' || appState === 'error';
+  const showHeader = appState !== 'landing';
 
   return (
     <div className={`app-container state-${appState}`}>
        {isWelcomeState && <AppBackground />}
        {appState === 'tracking' && <TrackingBackground />}
       
-       <Header 
+       {showHeader && <Header 
         onHomeClick={resetToHome}
         onNewShipmentClick={handleGoToCreateShipment}
         onTrackClick={() => appState === 'tracking' ? {} : handleTrack(trackingId || 'IT123456789')}
@@ -203,9 +219,9 @@ const App: React.FC = () => {
         onLogoutClick={() => setIsLogoutConfirmOpen(true)}
         appState={appState}
         onChatClick={() => handleShowChat()}
-       />
-      <main className="main-content">
-        {error && <div className="error-banner">{error}</div>}
+       />}
+      <main className={!showHeader ? "" : "main-content"}>
+        {error && !isWelcomeState && <div className="error-banner">{error}</div>}
         {renderContent()}
       </main>
 
@@ -219,7 +235,7 @@ const App: React.FC = () => {
         onConfirm={handleLogout}
         onCancel={() => setIsLogoutConfirmOpen(false)}
       />
-      <VoiceCommandButton onCommand={handleVoiceCommand} appState={appState === 'tracking' ? 'tracking' : 'welcome'} />
+      {showHeader && <VoiceCommandButton onCommand={handleVoiceCommand} appState={appState === 'tracking' ? 'tracking' : 'welcome'} />}
     </div>
   );
 };
