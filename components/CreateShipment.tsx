@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { NewShipmentData, Address, ServiceOption, DeclaredItem } from '../types';
+import { NewShipmentData, Address, ServiceOption, DeclaredItem, City } from '../types';
 import Icon from './Icon';
+import AddressAutocomplete from './AddressAutocomplete';
 
 interface CreateShipmentProps {
   onCreateShipment: (data: NewShipmentData) => void;
@@ -54,6 +55,15 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
     setter(prev => ({ ...prev, [field]: value }));
   };
   
+  const handleAutocompleteSelect = (type: 'origin' | 'destination', city: City) => {
+    const setter = type === 'origin' ? setOrigin : setDestination;
+    setter(prev => ({
+        ...prev,
+        cityStateZip: city.name,
+        country: city.country
+    }));
+  };
+
   const handleItemChange = (index: number, field: keyof DeclaredItem, value: string | number) => {
       const newItems = [...declaredItems];
       // Type assertion to satisfy TypeScript
@@ -129,8 +139,14 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
               <div className="form-grid">
                 <div className="form-field"><label>Full Name</label><input type="text" value={origin.name} onChange={e => handleAddressChange('origin', 'name', e.target.value)} required /></div>
                 <div className="form-field"><label>Street Address</label><input type="text" value={origin.street} onChange={e => handleAddressChange('origin', 'street', e.target.value)} required /></div>
-                <div className="form-field"><label>City, State/Province, ZIP</label><input type="text" value={origin.cityStateZip} onChange={e => handleAddressChange('origin', 'cityStateZip', e.target.value)} required /></div>
-                <div className="form-field"><label>Country</label><input type="text" value={origin.country} onChange={e => handleAddressChange('origin', 'country', e.target.value)} required /></div>
+                <AddressAutocomplete
+                    label="City"
+                    value={origin.cityStateZip}
+                    onChange={e => handleAddressChange('origin', 'cityStateZip', e.target.value)}
+                    onSelect={city => handleAutocompleteSelect('origin', city)}
+                    placeholder="e.g., New York"
+                />
+                <div className="form-field"><label>Country</label><input type="text" value={origin.country} onChange={e => handleAddressChange('origin', 'country', e.target.value)} required readOnly /></div>
               </div>
             </div>
             {/* Destination Address */}
@@ -139,8 +155,14 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
               <div className="form-grid">
                 <div className="form-field"><label>Full Name</label><input type="text" value={destination.name} onChange={e => handleAddressChange('destination', 'name', e.target.value)} required /></div>
                 <div className="form-field"><label>Street Address</label><input type="text" value={destination.street} onChange={e => handleAddressChange('destination', 'street', e.target.value)} required /></div>
-                <div className="form-field"><label>City, State/Province, ZIP</label><input type="text" value={destination.cityStateZip} onChange={e => handleAddressChange('destination', 'cityStateZip', e.target.value)} required /></div>
-                <div className="form-field"><label>Country</label><input type="text" value={destination.country} onChange={e => handleAddressChange('destination', 'country', e.target.value)} required /></div>
+                 <AddressAutocomplete
+                    label="City"
+                    value={destination.cityStateZip}
+                    onChange={e => handleAddressChange('destination', 'cityStateZip', e.target.value)}
+                    onSelect={city => handleAutocompleteSelect('destination', city)}
+                    placeholder="e.g., London"
+                />
+                <div className="form-field"><label>Country</label><input type="text" value={destination.country} onChange={e => handleAddressChange('destination', 'country', e.target.value)} required readOnly /></div>
               </div>
             </div>
           </div>

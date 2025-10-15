@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PackageDetails, NewShipmentData } from './types';
+import { PackageDetails, NewShipmentData, Notification } from './types';
 import { getShipmentDetails, createShipment, addDeliveryEvidence } from './services/shipmentService';
 import { initializeChat } from './services/geminiService';
 import { simulateNextEvent } from './services/shipmentSimulator';
@@ -11,6 +11,7 @@ import QRCodeScanner from './components/QRCodeScanner';
 import ChatAssistant from './components/ChatAssistant';
 import LogoutConfirmation from './components/LogoutConfirmation';
 import LogoutWarning from './components/LogoutWarning';
+import LogoutScreen from './components/LogoutScreen';
 import VoiceCommandButton, { VoiceCommand } from './components/VoiceCommandButton';
 import TrackingBackground from './components/TrackingBackground';
 import CreateShipment from './components/CreateShipment';
@@ -19,8 +20,9 @@ import { SUCCESS_SOUND } from './components/sounds';
 import AppBackground from './components/AppBackground';
 import LandingPage from './components/LandingPage';
 import PackageIntroAnimation from './components/PackageIntroAnimation';
+import EmailVerification from './components/EmailVerification';
 
-type AppState = 'landing' | 'intro_animation' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
+type AppState = 'landing' | 'intro_animation' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'logging_out';
 
 const LOGOUT_COUNTDOWN_SECONDS = 5;
 
@@ -40,6 +42,11 @@ const App: React.FC = () => {
   const [isLogoutWarningVisible, setIsLogoutWarningVisible] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(LOGOUT_COUNTDOWN_SECONDS);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
+  // Notification state
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [lastNotifiedStatus, setLastNotifiedStatus] = useState<string | null>(null);
+
 
   // Sound effect
   const [playSuccessSound] = useSound(SUCCESS_SOUND, 0.5);
@@ -67,6 +74,23 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [isLogoutWarningVisible, logoutCountdown]);
 
+  const addNotification = (title: string, message: string) => {
+    const newNotification: Notification = {
+        id: Date.now(),
+        title,
+        message,
+        timestamp: new Date(),
+        read: false,
+    };
+    setNotifications(prev => [newNotification, ...prev]);
+  };
+
+  const markAllNotificationsAsRead = () => {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const unreadNotificationCount = notifications.filter(n => !n.read).length;
+
   const handleProceedFromLanding = () => {
     sessionStorage.setItem('hasVisited', 'true');
     setAppState('intro_animation');
@@ -92,6 +116,7 @@ const App: React.FC = () => {
           setPackageDetails(details);
           setAppState('tracking');
           initializeChat(details.id);
+          setLastNotifiedStatus(details.status); // Initialize status tracking for notifications
         } else {
           setError(`No shipment found for Tracking ID: ${id}. Please check the ID and try again.`);
           setAppState('error');
@@ -112,14 +137,20 @@ const App: React.FC = () => {
       interval = setInterval(() => {
         setPackageDetails(prevDetails => {
           if (prevDetails) {
-            return simulateNextEvent(prevDetails);
+            const updatedDetails = simulateNextEvent(prevDetails);
+            // Check if status changed to send a notification
+            if (updatedDetails.status !== lastNotifiedStatus) {
+                addNotification(`Status Update: ${updatedDetails.status}`, `Your package ${updatedDetails.id} is now at ${updatedDetails.history[0].location}.`);
+                setLastNotifiedStatus(updatedDetails.status);
+            }
+            return updatedDetails;
           }
           return null;
         });
       }, 7000); // Update every 7 seconds
     }
     return () => clearInterval(interval);
-  }, [appState, packageDetails]);
+  }, [appState, packageDetails, lastNotifiedStatus]);
   
   const handleAddEvidence = (type: 'photo' | 'signature' | 'audio', data: string) => {
     if (packageDetails) {
@@ -141,8 +172,8 @@ const App: React.FC = () => {
       const newPackage = await createShipment(data);
       setPackageDetails(newPackage);
       setTrackingId(newPackage.id);
-      setAppState('tracking');
-      initializeChat(newPackage.id);
+      addNotification('Shipment Created!', `Your new shipment ${newPackage.id} is ready. Awaiting verification.`);
+      setAppState('email_verification');
       playSuccessSound();
     } catch (e) {
       setError('Could not create shipment. Please try again.');
@@ -151,6 +182,18 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   };
+  
+  const handleVerificationSuccess = () => {
+    if (packageDetails) {
+      addNotification('Shipment Verified', `Shipment ${packageDetails.id} has been confirmed and is being processed.`);
+      setAppState('tracking');
+      initializeChat(packageDetails.id);
+    } else {
+      // Fallback in case packageDetails is somehow null
+      resetToHome();
+    }
+  };
+
 
   const handleScan = () => {
     setIsScanning(true);
@@ -188,8 +231,7 @@ const App: React.FC = () => {
   const handleConfirmLogout = () => {
       console.log("Logging out...");
       setIsLogoutConfirmOpen(false);
-      // In a real app, you'd clear tokens, etc.
-      resetToHome();
+      setAppState('logging_out');
   }
 
   const handleVoiceCommand = (command: VoiceCommand) => {
@@ -226,6 +268,10 @@ const App: React.FC = () => {
         return packageDetails ? <TrackingDisplay packageDetails={packageDetails} onNewSearch={resetToHome} onShowChat={handleShowChat} setPackageDetails={setPackageDetails} onAddEvidence={handleAddEvidence} /> : null;
       case 'create_shipment':
         return <CreateShipment onCreateShipment={handleCreateShipment} isLoading={isLoading} />;
+      case 'email_verification':
+        return <EmailVerification onVerify={handleVerificationSuccess} userEmail={packageDetails?.destination.name || 'your email'}/>
+      case 'logging_out':
+        return <LogoutScreen onComplete={resetToHome} />;
       case 'error':
         return (
           <WelcomeScreen
@@ -249,7 +295,7 @@ const App: React.FC = () => {
   };
 
   const isWelcomeState = appState === 'welcome' || appState === 'error';
-  const showHeader = appState !== 'landing' && appState !== 'intro_animation';
+  const showHeader = appState !== 'landing' && appState !== 'intro_animation' && appState !== 'logging_out';
 
   return (
     <div className={`app-container state-${appState}`}>
@@ -264,6 +310,9 @@ const App: React.FC = () => {
         onLogoutClick={handleStartLogout}
         appState={appState}
         onChatClick={() => handleShowChat()}
+        notifications={notifications}
+        unreadCount={unreadNotificationCount}
+        onMarkNotificationsRead={markAllNotificationsAsRead}
        />}
       <main className={!showHeader ? "" : "main-content"}>
         {error && !isWelcomeState && <div className="error-banner">{error}</div>}

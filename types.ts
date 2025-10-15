@@ -1,4 +1,5 @@
 
+
 // Fix: Removed circular dependency by defining and exporting the City interface here.
 export interface City {
   name: string;
@@ -43,6 +44,14 @@ export interface DeliveryEvidence {
     signature?: string; // base64
     audio?: string; // base64
     aiAnalysis?: AIAnalysisResult;
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
 }
 
 export interface PackageDetails {

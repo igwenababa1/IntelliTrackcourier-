@@ -9,6 +9,7 @@ const VERIFICATION_STEPS = [
 ];
 
 const STEP_DURATION = 2000; // ms
+const RING_RADIUS = 160; // in pixels
 
 interface GeneratingReportScreenProps {
   onComplete: () => void;
@@ -41,29 +42,55 @@ const GeneratingReportScreen: React.FC<GeneratingReportScreenProps> = ({ onCompl
     if (stepIndex === currentStep && currentStep < VERIFICATION_STEPS.length) {
       return <div className="spinner"></div>;
     }
-    // Return an empty placeholder for future steps
-    return <div style={{ width: '20px', height: '20px' }}></div>;
+    // Return a placeholder for future steps
+    return <Icon name="file-text" />;
   };
 
   return (
     <div className="generating-report-container">
-      <h2 className="report-title">Generating Secure Shipment Report</h2>
-      <ul className="report-steps">
-        {VERIFICATION_STEPS.map((step, index) => (
-          <li
-            key={index}
-            className={`report-step ${index <= currentStep ? 'visible' : ''}`}
-            style={{ animationDelay: `${index * 100}ms`, opacity: 0, transform: 'translateY(10px)' }}
-          >
-            <div className="report-step-icon">
-              {getStepIcon(index)}
+       <video 
+            id="report-video-bg"
+            src="https://videos.pexels.com/video-files/5789456/5789456-hd_1920_1080_25fps.mp4" 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+        ></video>
+        <div className="report-video-overlay"></div>
+
+        <div className="report-content">
+            <h2 className="report-title">Generating Secure Shipment Report</h2>
+            <div className="report-progress-ring">
+                <div className="progress-ring-base">
+                    {VERIFICATION_STEPS.map((step, index) => {
+                        const angle = index * (360 / VERIFICATION_STEPS.length);
+                        const isCompleted = index < currentStep;
+                        const isActive = index === currentStep && currentStep < VERIFICATION_STEPS.length;
+                        
+                        let nodeClasses = "report-step-node-icon";
+                        if (isActive) nodeClasses += " active";
+                        if (isCompleted) nodeClasses += " completed";
+
+                        return (
+                            <div 
+                                key={index}
+                                className="report-step-node"
+                                style={{
+                                    transform: `rotate(${angle}deg) translate(${RING_RADIUS}px) rotate(${-angle}deg)`
+                                }}
+                            >
+                                <div className={nodeClasses}>
+                                    {getStepIcon(index)}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="progress-center-text">
+                    {currentStep < VERIFICATION_STEPS.length ? VERIFICATION_STEPS[currentStep] : 'Finalizing...'}
+                </div>
             </div>
-            <span className="report-step-text">
-              {step}
-            </span>
-          </li>
-        ))}
-      </ul>
+        </div>
     </div>
   );
 };

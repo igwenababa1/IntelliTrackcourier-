@@ -142,6 +142,7 @@ const AudioConfirmationModal: React.FC<{
   onClose: () => void;
 }> = ({ onConfirm, onClose }) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
@@ -149,29 +150,68 @@ const AudioConfirmationModal: React.FC<{
   const [playStart] = useSound(COMMAND_SOUND, 0.6);
   const [playStop] = useSound(CONFIRM_SOUND, 0.5);
 
+  // Effect for cleaning up microphone and recorder resources when the modal closes.
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
+  // Effect for cleaning up the created blob URL to prevent memory leaks.
+  useEffect(() => {
+    return () => {
+      if (audioURL) {
+        URL.revokeObjectURL(audioURL);
+      }
+    };
+  }, [audioURL]);
+
   const startRecording = async () => {
     setError(null);
-    setAudioURL(null);
+    setAudioURL(null); // This will trigger the cleanup effect for the old URL
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       playStart();
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
+      
       mediaRecorderRef.current.ondataavailable = event => {
-        audioChunksRef.current.push(event.data);
-      };
-      mediaRecorderRef.current.onstop = () => {
-        if (audioChunksRef.current.length === 0) {
-            setError("Recording failed. No audio data was captured. Please try again.");
-            setIsRecording(false);
-            stream.getTracks().forEach(track => track.stop());
-            return;
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
+      };
+      
+      mediaRecorderRef.current.onstop = () => {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+
+        if (audioChunksRef.current.length === 0) {
+          setError("Recording failed. No audio data was captured. Please try again.");
+          setIsRecording(false);
+          return;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (audioBlob.size === 0) {
+          setError("Recording failed. A zero-byte file was created. Please try again.");
+          setIsRecording(false);
+          return;
+        }
+        
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);
-        stream.getTracks().forEach(track => track.stop());
       };
+
       mediaRecorderRef.current.start();
       setIsRecording(true);
     } catch (err) {

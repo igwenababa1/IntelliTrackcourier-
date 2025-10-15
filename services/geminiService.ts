@@ -17,9 +17,9 @@ const THEMATIC_PROMPTS = [
  * Generates a thematic, professional image representing the courier service,
  * rather than the literal contents of the package.
  * @param _prompt This parameter is ignored; a random thematic prompt is used instead.
- * @returns A base64 encoded data URL for the generated image.
+ * @returns A base64 encoded data URL for the generated image, or null on failure.
  */
-export async function generatePackageImage(_prompt: string): Promise<string> {
+export async function generatePackageImage(_prompt: string): Promise<string | null> {
   try {
     // Select a random prompt from the predefined list to ensure high-quality, relevant imagery.
     const randomPrompt = THEMATIC_PROMPTS[Math.floor(Math.random() * THEMATIC_PROMPTS.length)];
@@ -39,12 +39,18 @@ export async function generatePackageImage(_prompt: string): Promise<string> {
     if (base64ImageBytes) {
       return `data:image/jpeg;base64,${base64ImageBytes}`;
     } else {
-      throw new Error('Image generation failed, no image data received.');
+      console.warn('Gemini API returned no image data.');
+      return null;
     }
-  } catch (error) {
-    console.error('Error generating package image with Gemini API:', error);
-    // Re-throw the error to be handled by the calling component
-    throw error;
+  } catch (error: any) {
+    // Gracefully handle API errors, especially rate limiting (429).
+    if (error.toString().includes('429') || (error.httpStatus && error.httpStatus === 429)) {
+        console.warn('Gemini API rate limit exceeded. Skipping package image generation.');
+    } else {
+        console.error('Error generating package image with Gemini API:', error);
+    }
+    // Return null to allow the UI to degrade gracefully.
+    return null;
   }
 }
 
