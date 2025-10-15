@@ -29,6 +29,22 @@ export interface DeclaredItem {
   countryOfOrigin: string;
 }
 
+export interface AIAnalysisResult {
+    summary: string;
+    confidence: number;
+    verificationPoints: {
+        key: string;
+        value: string;
+    }[];
+}
+
+export interface DeliveryEvidence {
+    photo?: string; // base64
+    signature?: string; // base64
+    audio?: string; // base64
+    aiAnalysis?: AIAnalysisResult;
+}
+
 export interface PackageDetails {
   id: string;
   status: string;
@@ -43,6 +59,7 @@ export interface PackageDetails {
   insuranceValue: number;
   specialHandling: string[];
   advancedOptions: string[];
+  deliveryEvidence?: DeliveryEvidence;
 }
 
 export type ServiceOption = 'Standard' | 'Express' | 'Overnight' | 'Same-Day' | 'Weekend';

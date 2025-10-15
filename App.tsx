@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PackageDetails, NewShipmentData } from './types';
-import { getShipmentDetails, createShipment } from './services/shipmentService';
+import { getShipmentDetails, createShipment, addDeliveryEvidence } from './services/shipmentService';
 import { initializeChat } from './services/geminiService';
 import { simulateNextEvent } from './services/shipmentSimulator';
 import Header from './components/Header';
@@ -18,8 +18,9 @@ import useSound from './hooks/useSound';
 import { SUCCESS_SOUND } from './components/sounds';
 import AppBackground from './components/AppBackground';
 import LandingPage from './components/LandingPage';
+import PackageIntroAnimation from './components/PackageIntroAnimation';
 
-type AppState = 'landing' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
+type AppState = 'landing' | 'intro_animation' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment';
 
 const LOGOUT_COUNTDOWN_SECONDS = 5;
 
@@ -68,6 +69,10 @@ const App: React.FC = () => {
 
   const handleProceedFromLanding = () => {
     sessionStorage.setItem('hasVisited', 'true');
+    setAppState('intro_animation');
+  };
+
+  const handleIntroAnimationComplete = () => {
     setAppState('welcome');
   };
 
@@ -115,6 +120,14 @@ const App: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [appState, packageDetails]);
+  
+  const handleAddEvidence = (type: 'photo' | 'signature' | 'audio', data: string) => {
+    if (packageDetails) {
+        const updatedDetails = addDeliveryEvidence(packageDetails.id, type, data);
+        setPackageDetails(updatedDetails);
+    }
+  };
+
 
   const handleGoToCreateShipment = () => {
     setError(null);
@@ -205,10 +218,12 @@ const App: React.FC = () => {
     switch (appState) {
       case 'landing':
         return <LandingPage onProceed={handleProceedFromLanding} />;
+      case 'intro_animation':
+        return <PackageIntroAnimation onAnimationComplete={handleIntroAnimationComplete} />;
       case 'generating_report':
         return <GeneratingReportScreen onComplete={() => {}} />; // onComplete is handled by handleTrack timeout
       case 'tracking':
-        return packageDetails ? <TrackingDisplay packageDetails={packageDetails} onNewSearch={resetToHome} onShowChat={handleShowChat} /> : null;
+        return packageDetails ? <TrackingDisplay packageDetails={packageDetails} onNewSearch={resetToHome} onShowChat={handleShowChat} setPackageDetails={setPackageDetails} onAddEvidence={handleAddEvidence} /> : null;
       case 'create_shipment':
         return <CreateShipment onCreateShipment={handleCreateShipment} isLoading={isLoading} />;
       case 'error':
@@ -234,7 +249,7 @@ const App: React.FC = () => {
   };
 
   const isWelcomeState = appState === 'welcome' || appState === 'error';
-  const showHeader = appState !== 'landing';
+  const showHeader = appState !== 'landing' && appState !== 'intro_animation';
 
   return (
     <div className={`app-container state-${appState}`}>

@@ -25,8 +25,8 @@ const INSURANCE_COSTS: Record<number, number> = {
 const ADVANCED_OPTION_COSTS: Record<string, number> = {
     'Extended Warranty': 10,
     'Tamper-Proof Seal': 5,
-    'Secure Vault Storage': 20,
-    'Priority Security Screening': 12
+    'Secure Vault Storage': 620,
+    'Priority Security Screening': 429
 };
 
 const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoading }) => {
@@ -154,7 +154,26 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
             <div className="form-field"><label>Dimensions (cm)</label><input type="text" value={dimensions} onChange={e => setDimensions(e.target.value)} placeholder="e.g., 30x20x15 cm" required /></div>
           </div>
         </section>
-        
+
+        {/* Advanced Warranty Options Section */}
+        <section className="form-section">
+            <h2 className="form-section-title">
+              <Icon name="shield-check" className="title-icon" />
+              <span>Advanced Warranty Options</span>
+            </h2>
+            <p className="form-section-subtitle">
+                Add extra layers of protection and peace of mind for your valuable shipments.
+            </p>
+            <div className="options-group">
+                {Object.entries(ADVANCED_OPTION_COSTS).map(([opt, cost]) => (
+                    <label key={opt} className="checkbox-option">
+                        <input type="checkbox" checked={advancedOptions.includes(opt)} onChange={e => handleAdvancedOptionChange(opt, e.target.checked)} />
+                        {opt} (+${cost})
+                    </label>
+                ))}
+            </div>
+        </section>
+
         {/* Customs Declaration */}
         <section className="form-section">
             <h2 className="form-section-title">
@@ -180,7 +199,7 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
 
         {/* Shipping Options */}
         <section className="form-section">
-            <h2 className="form-section-title">Advanced Options</h2>
+            <h2 className="form-section-title">Shipping Options</h2>
             <div style={{marginBottom: '2rem'}}>
                 <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '600', color: 'white' }}>Shipping Insurance</label>
                 <div className="options-group">
@@ -192,7 +211,7 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
                     ))}
                 </div>
             </div>
-             <div style={{marginBottom: '2rem'}}>
+             <div>
                 <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '600', color: 'white' }}>Special Handling</label>
                 <div className="options-group">
                     {['Fragile', 'Perishable', 'Handle with Care', 'This Side Up'].map(opt => (
@@ -203,19 +222,7 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
                     ))}
                 </div>
             </div>
-             <div>
-                <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '600', color: 'white' }}>Warranty & Security</label>
-                <div className="options-group">
-                    {Object.entries(ADVANCED_OPTION_COSTS).map(([opt, cost]) => (
-                        <label key={opt} className="checkbox-option">
-                            <input type="checkbox" checked={advancedOptions.includes(opt)} onChange={e => handleAdvancedOptionChange(opt, e.target.checked)} />
-                            {opt} (+${cost})
-                        </label>
-                    ))}
-                </div>
-            </div>
         </section>
-
 
         {/* Service Options Section */}
         <section className="form-section">

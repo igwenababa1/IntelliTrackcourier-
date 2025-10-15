@@ -83,14 +83,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onProceed }) => {
       source.connect(audioContext.destination);
       source.start();
     }
-    // Fade out the landing page before proceeding
-    const landingOverlay = document.querySelector('.landing-overlay');
-    // Fix: Use a type guard to ensure landingOverlay is an HTMLElement before accessing its style property.
-    if (landingOverlay instanceof HTMLElement) {
-      landingOverlay.style.transition = 'opacity 0.5s ease-out';
-      landingOverlay.style.opacity = '0';
+    
+    const landingContent = document.querySelector('.landing-content');
+    if (landingContent instanceof HTMLElement) {
+      landingContent.style.opacity = '0';
     }
-    setTimeout(onProceed, 500); // Wait for fade out to complete
+    const featureCards = document.querySelector('.feature-cards-3d');
+    if (featureCards instanceof HTMLElement) {
+        featureCards.style.display = 'none';
+    }
+
+    // Call the parent handler to start the next phase (animation)
+    setTimeout(onProceed, 500);
   }, [audioContext, audioBuffer, onProceed]);
 
   return (

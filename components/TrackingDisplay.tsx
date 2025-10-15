@@ -9,14 +9,20 @@ import ShipmentActions from './ShipmentActions';
 import MapVisualization from './MapVisualization';
 import Loader from './Loader';
 import ShipmentReceipt from './ShipmentReceipt';
+import DeliveryVault from './DeliveryVault';
+import ZenGarden from './ZenGarden';
+import AIInsights from './AIInsights';
+
 
 interface TrackingDisplayProps {
   packageDetails: PackageDetails;
   onNewSearch: () => void;
   onShowChat: (prompt: string) => void;
+  setPackageDetails: React.Dispatch<React.SetStateAction<PackageDetails | null>>;
+  onAddEvidence: (type: 'photo' | 'signature' | 'audio', data: string) => void;
 }
 
-type ActiveView = 'journey' | 'map' | 'receipt';
+type ActiveView = 'journey' | 'map' | 'receipt' | 'vault';
 
 const getIconForStatus = (status: string): IconName => {
   const s = status.toLowerCase();
@@ -28,10 +34,12 @@ const getIconForStatus = (status: string): IconName => {
   return 'check-circle';
 };
 
-const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNewSearch, onShowChat }) => {
+const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNewSearch, onShowChat, setPackageDetails, onAddEvidence }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>('journey');
+  const [isZenMode, setIsZenMode] = useState(false);
+
 
   const getContentsSummary = (details: PackageDetails): string => {
     if (!details.declaredItems || details.declaredItems.length === 0) return 'No items declared';
@@ -106,6 +114,8 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
         return <MapVisualization path={journeyPath} activeLocation={packageDetails.history[0].location} />;
       case 'receipt':
         return <ShipmentReceipt details={packageDetails} />;
+      case 'vault':
+        return <DeliveryVault details={packageDetails} setPackageDetails={setPackageDetails} />;
       case 'journey':
       default:
         return (
@@ -122,6 +132,8 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
         );
     }
   };
+
+  const isDelivered = packageDetails.status.toLowerCase() === 'delivered';
 
   return (
     <div className="tracking-display-container">
@@ -153,55 +165,36 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
                   </div>
               </div>
           </div>
-          <button onClick={onNewSearch} className="new-search-button">
-            <Icon name="edit-3" /> New Search
-          </button>
+          <div className="tracking-display-header-actions">
+            <div className="zen-mode-toggle" onClick={() => setIsZenMode(!isZenMode)}>
+                <Icon name={isZenMode ? "zap-off" : "zap"} /> 
+                <span>{isZenMode ? "Standard Mode" : "Zen Mode"}</span>
+            </div>
+            <button onClick={onNewSearch} className="new-search-button">
+                <Icon name="edit-3" /> New Search
+            </button>
+          </div>
       </header>
       
-      <ShipmentProgressBar status={packageDetails.status} history={packageDetails.history} />
+      {!isZenMode && <ShipmentProgressBar status={packageDetails.status} history={packageDetails.history} />}
 
       <div className="tracking-body">
         <div className="main-content-panel">
-          <div className="view-selector" role="tablist" aria-label="Tracking Information Views">
-            <button
-              id="tab-journey"
-              onClick={() => setActiveView('journey')}
-              className={activeView === 'journey' ? 'active' : ''}
-              role="tab"
-              aria-selected={activeView === 'journey'}
-              aria-controls="view-content-panel"
-            >
-              Journey
-            </button>
-            <button
-              id="tab-map"
-              onClick={() => setActiveView('map')}
-              className={activeView === 'map' ? 'active' : ''}
-              role="tab"
-              aria-selected={activeView === 'map'}
-              aria-controls="view-content-panel"
-            >
-              Map
-            </button>
-            <button
-              id="tab-receipt"
-              onClick={() => setActiveView('receipt')}
-              className={activeView === 'receipt' ? 'active' : ''}
-              role="tab"
-              aria-selected={activeView === 'receipt'}
-              aria-controls="view-content-panel"
-            >
-              Receipt
-            </button>
-          </div>
-          <div
-            id="view-content-panel"
-            role="tabpanel"
-            className="view-content"
-            aria-labelledby={`tab-${activeView}`}
-          >
-            {renderActiveView()}
-          </div>
+          {isZenMode ? (
+              <ZenGarden packageDetails={packageDetails} />
+          ) : (
+            <>
+              <div className="view-selector" role="tablist" aria-label="Tracking Information Views">
+                <button id="tab-journey" onClick={() => setActiveView('journey')} className={activeView === 'journey' ? 'active' : ''} role="tab" aria-selected={activeView === 'journey'} aria-controls="view-content-panel">Journey</button>
+                <button id="tab-map" onClick={() => setActiveView('map')} className={activeView === 'map' ? 'active' : ''} role="tab" aria-selected={activeView === 'map'} aria-controls="view-content-panel">Map</button>
+                <button id="tab-receipt" onClick={() => setActiveView('receipt')} className={activeView === 'receipt' ? 'active' : ''} role="tab" aria-selected={activeView === 'receipt'} aria-controls="view-content-panel">Receipt</button>
+                {isDelivered && <button id="tab-vault" onClick={() => setActiveView('vault')} className={activeView === 'vault' ? 'active' : ''} role="tab" aria-selected={activeView === 'vault'} aria-controls="view-content-panel">Delivery Vault</button>}
+              </div>
+              <div id="view-content-panel" role="tabpanel" className="view-content" aria-labelledby={`tab-${activeView}`}>
+                {renderActiveView()}
+              </div>
+            </>
+          )}
         </div>
         
         <aside className="sidebar-panel">
@@ -227,6 +220,10 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
               {daysRemainingText && <span>{daysRemainingText}</span>}
             </div>
           </div>
+          
+           {/* AI Insights Section */}
+          <AIInsights history={packageDetails.history} />
+
 
           <div className="address-container">
             <div className="address-icon">
@@ -294,7 +291,7 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
           )}
 
 
-          <ShipmentActions packageDetails={packageDetails} onShowChat={onShowChat} />
+          <ShipmentActions packageDetails={packageDetails} onShowChat={onShowChat} onAddEvidence={onAddEvidence} />
         </aside>
       </div>
     </div>

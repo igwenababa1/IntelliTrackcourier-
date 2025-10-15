@@ -19,6 +19,8 @@ export type IconName =
   | 'log-out'
   | 'file-text'
   | 'edit-3'
+  | 'zap'
+  | 'zap-off'
   | 'shield-check';
 
 const icons: Record<IconName, React.ReactNode> = {
@@ -149,6 +151,19 @@ const icons: Record<IconName, React.ReactNode> = {
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
       <path d="m9 12 2 2 4-4"></path>
+    </svg>
+  ),
+  zap: (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+    </svg>
+  ),
+  'zap-off': (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="12.41 6.75 13 2 10.57 4.92"></polyline>
+        <polyline points="18.57 12.91 21 10 15.66 10"></polyline>
+        <polyline points="8 8 3 14 12 14 11 22 16 16"></polyline>
+        <line x1="1" y1="1" x2="23" y2="23"></line>
     </svg>
   ),
 };

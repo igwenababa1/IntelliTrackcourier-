@@ -161,6 +161,12 @@ const AudioConfirmationModal: React.FC<{
         audioChunksRef.current.push(event.data);
       };
       mediaRecorderRef.current.onstop = () => {
+        if (audioChunksRef.current.length === 0) {
+            setError("Recording failed. No audio data was captured. Please try again.");
+            setIsRecording(false);
+            stream.getTracks().forEach(track => track.stop());
+            return;
+        }
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(audioBlob);
         setAudioURL(url);

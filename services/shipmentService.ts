@@ -1,4 +1,4 @@
-import { PackageDetails, TrackingEvent, City, NewShipmentData, DeclaredItem } from '../types';
+import { PackageDetails, TrackingEvent, City, NewShipmentData, DeclaredItem, DeliveryEvidence } from '../types';
 import { CITIES } from '../data/cities';
 
 // --- MOCK DATA ---
@@ -68,6 +68,12 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
     insuranceValue: 100,
     specialHandling: [],
     advancedOptions: [],
+    deliveryEvidence: {
+        // Placeholder signature for demonstration
+        signature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCAYAAABa2elYAAAB/ElEQVR4nO3BMQEAAADCoPVPbQo/oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgA8NAAAB/2G20wAAAABJRU5ErkJggg==',
+        // Placeholder photo for demonstration
+        photo: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQIBAQICAgICAgICAwUDAwMDAwYEBAMFBwYHBwcGBwcICQsJCAgKCAcHCg0KCgsMDAwMBwkODw0MDgsMDAz/2wBDAQICAgMDAwYDAwYMCAcIDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/ALID/9k='
+    }
   },
   'QR-MOCK-34159-XYZ': {
     id: 'QR-MOCK-34159-XYZ',
@@ -221,4 +227,35 @@ export const getJourneyPath = (history: TrackingEvent[]): City[] => {
   });
 
   return journeyCities;
+};
+
+/**
+ * Adds a piece of delivery evidence to a shipment's record.
+ * This is a mock function that directly mutates the in-memory database.
+ * @param packageId The ID of the package to update.
+ * @param type The type of evidence being added.
+ * @param data The base64 encoded data for the evidence.
+ * @returns The updated package details.
+ */
+export const addDeliveryEvidence = (packageId: string, type: 'photo' | 'signature' | 'audio', data: string): PackageDetails | null => {
+    if (MOCK_DB[packageId]) {
+        const currentDetails = MOCK_DB[packageId];
+        const currentEvidence = currentDetails.deliveryEvidence || {};
+        
+        const newEvidence: DeliveryEvidence = {
+            ...currentEvidence,
+            [type]: data,
+        };
+        
+        const updatedDetails: PackageDetails = {
+            ...currentDetails,
+            deliveryEvidence: newEvidence,
+        };
+        
+        MOCK_DB[packageId] = updatedDetails;
+        console.log(`Added ${type} evidence to ${packageId}.`);
+        return updatedDetails;
+    }
+    console.error(`Could not find package with ID ${packageId} to add evidence.`);
+    return null;
 };

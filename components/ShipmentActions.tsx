@@ -8,6 +8,7 @@ import DeliveryConfirmation from './DeliveryConfirmation';
 interface ShipmentActionsProps {
   packageDetails: PackageDetails;
   onShowChat: (prompt: string) => void;
+  onAddEvidence: (type: 'photo' | 'signature' | 'audio', data: string) => void;
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
@@ -54,12 +55,13 @@ const styles: { [key: string]: React.CSSProperties } = {
 /**
  * Renders action buttons for a shipment, such as viewing labels, AR, and confirming delivery.
  */
-const ShipmentActions: React.FC<ShipmentActionsProps> = ({ packageDetails, onShowChat }) => {
+const ShipmentActions: React.FC<ShipmentActionsProps> = ({ packageDetails, onShowChat, onAddEvidence }) => {
   const [isLabelVisible, setIsLabelVisible] = useState(false);
   const [isARVisible, setIsARVisible] = useState(false);
 
   const handleDeliveryConfirm = (type: 'photo' | 'audio' | 'signature', data: string) => {
     console.log(`Delivery confirmed with ${type}. Data length: ${data.length}`);
+    onAddEvidence(type, data); // Save the evidence to the main state
     onShowChat(`I've just provided a ${type} confirmation for the delivery of package ${packageDetails.id}. Please add this to the record.`);
   };
 
