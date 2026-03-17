@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@google/genai": "^1.24.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/xr": "^6.6.29",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "qrcode": "^1.5.4",
