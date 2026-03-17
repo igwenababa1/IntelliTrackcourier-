@@ -36,7 +36,7 @@ export interface SpeechRecognitionHook {
   stopListening: () => void;
 }
 
-const useSpeechRecognition = (): SpeechRecognitionHook => {
+const useSpeechRecognition = (language: string = 'en-US'): SpeechRecognitionHook => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +49,7 @@ const useSpeechRecognition = (): SpeechRecognitionHook => {
       const recognition = recognitionRef.current;
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognition.lang = language;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const currentTranscript = event.results[0][0].transcript;
@@ -77,7 +77,7 @@ const useSpeechRecognition = (): SpeechRecognitionHook => {
         recognitionRef.current.stop();
       }
     };
-  }, []);
+  }, [language]);
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {

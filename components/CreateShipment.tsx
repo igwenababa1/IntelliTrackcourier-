@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { NewShipmentData, Address, ServiceOption, DeclaredItem, City } from '../types';
-import Icon from './Icon';
+import Icon, { IconName } from './Icon';
 import AddressAutocomplete from './AddressAutocomplete';
 
 interface CreateShipmentProps {
@@ -8,13 +8,13 @@ interface CreateShipmentProps {
   isLoading: boolean;
 }
 
-const SERVICE_COSTS: Record<ServiceOption, number> = {
-    'Standard': 15,
-    'Express': 35,
-    'Overnight': 70,
-    'Same-Day': 120,
-    'Weekend': 50
-};
+const SERVICES: { name: ServiceOption; timeframe: string; cost: number; icon: IconName }[] = [
+    { name: 'Standard', timeframe: '5-7 Business Days', cost: 15, icon: 'package' },
+    { name: 'Express', timeframe: '2-3 Business Days', cost: 35, icon: 'truck' },
+    { name: 'Overnight', timeframe: 'Next Business Day', cost: 70, icon: 'zap' },
+    { name: 'Same-Day', timeframe: 'Within 12 hours', cost: 120, icon: 'home' },
+    { name: 'Weekend', timeframe: 'Guaranteed Saturday', cost: 50, icon: 'calendar' }
+];
 
 const INSURANCE_COSTS: Record<number, number> = {
     0: 0,
@@ -31,8 +31,8 @@ const ADVANCED_OPTION_COSTS: Record<string, number> = {
 };
 
 const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoading }) => {
-  const [origin, setOrigin] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '' });
-  const [destination, setDestination] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '' });
+  const [origin, setOrigin] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '', email: '' });
+  const [destination, setDestination] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '', email: '' });
   const [weight, setWeight] = useState('');
   const [dimensions, setDimensions] = useState('');
   const [service, setService] = useState<ServiceOption>('Standard');
@@ -42,9 +42,10 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
   const [insuranceValue, setInsuranceValue] = useState<number>(0);
   const [specialHandling, setSpecialHandling] = useState<string[]>([]);
   const [advancedOptions, setAdvancedOptions] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const totalCost = useMemo(() => {
-    const serviceCost = SERVICE_COSTS[service];
+    const serviceCost = SERVICES.find(s => s.name === service)?.cost || 0;
     const insuranceCost = INSURANCE_COSTS[insuranceValue];
     const advancedCost = advancedOptions.reduce((acc, opt) => acc + (ADVANCED_OPTION_COSTS[opt] || 0), 0);
     return serviceCost + insuranceCost + advancedCost;
@@ -97,9 +98,40 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
       }
   };
 
+  const validateAddress = (addr: Address, type: 'origin' | 'destination') => {
+    const newErrors: Record<string, string> = {};
+    if (!addr.name || addr.name.trim().length < 2) newErrors[`${type}Name`] = 'Name must be at least 2 characters';
+    if (!addr.street || addr.street.trim().length < 5) newErrors[`${type}Street`] = 'Street must be at least 5 characters';
+    if (!addr.cityStateZip || addr.cityStateZip.trim().length < 2) newErrors[`${type}City`] = 'City is required';
+    if (!addr.country || addr.country.trim().length < 2) newErrors[`${type}Country`] = 'Country is required';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!addr.email || !emailRegex.test(addr.email)) newErrors[`${type}Email`] = 'Valid email is required';
+    return newErrors;
+  };
+
+  const validateForm = () => {
+    const originErrors = validateAddress(origin, 'origin');
+    const destErrors = validateAddress(destination, 'destination');
+    
+    const newErrors = { ...originErrors, ...destErrors };
+    
+    if (!weight) newErrors.weight = 'Weight is required';
+    if (!dimensions) newErrors.dimensions = 'Dimensions are required';
+    
+    declaredItems.forEach((item, index) => {
+      if (!item.description) newErrors[`item${index}Desc`] = 'Description required';
+      if (item.quantity <= 0) newErrors[`item${index}Qty`] = 'Quantity must be > 0';
+      if (item.value < 0) newErrors[`item${index}Value`] = 'Value cannot be negative';
+      if (!item.countryOfOrigin) newErrors[`item${index}Country`] = 'Country of origin required';
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading || !isFormValid()) return;
+    if (isLoading || !validateForm()) return;
     
     const shipmentData: NewShipmentData = {
       origin,
@@ -114,15 +146,10 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
     };
     onCreateShipment(shipmentData);
   };
-  
-  const isFormValid = () => {
-      return (
-          origin.name && origin.street && origin.cityStateZip && origin.country &&
-          destination.name && destination.street && destination.cityStateZip && destination.country &&
-          weight && dimensions &&
-          declaredItems.every(item => item.description && item.quantity > 0 && item.value >= 0 && item.countryOfOrigin)
-      );
-  }
+
+  const renderError = (field: string) => {
+    return errors[field] ? <span className="error-text" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{errors[field]}</span> : null;
+  };
 
   return (
     <div className="create-shipment-container">
@@ -137,32 +164,68 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
             <div>
               <h3>From (Sender)</h3>
               <div className="form-grid">
-                <div className="form-field"><label>Full Name</label><input type="text" value={origin.name} onChange={e => handleAddressChange('origin', 'name', e.target.value)} required /></div>
-                <div className="form-field"><label>Street Address</label><input type="text" value={origin.street} onChange={e => handleAddressChange('origin', 'street', e.target.value)} required /></div>
+                <div className="form-field">
+                  <label>Full Name</label>
+                  <input type="text" value={origin.name} onChange={e => handleAddressChange('origin', 'name', e.target.value)} required />
+                  {renderError('originName')}
+                </div>
+                <div className="form-field">
+                  <label>Email Address</label>
+                  <input type="email" value={origin.email} onChange={e => handleAddressChange('origin', 'email', e.target.value)} required />
+                  {renderError('originEmail')}
+                </div>
+                <div className="form-field">
+                  <label>Street Address</label>
+                  <input type="text" value={origin.street} onChange={e => handleAddressChange('origin', 'street', e.target.value)} required />
+                  {renderError('originStreet')}
+                </div>
                 <AddressAutocomplete
                     label="City"
                     value={origin.cityStateZip}
                     onChange={e => handleAddressChange('origin', 'cityStateZip', e.target.value)}
                     onSelect={city => handleAutocompleteSelect('origin', city)}
                     placeholder="e.g., New York"
+                    error={errors.originCity}
                 />
-                <div className="form-field"><label>Country</label><input type="text" value={origin.country} onChange={e => handleAddressChange('origin', 'country', e.target.value)} required readOnly /></div>
+                <div className="form-field">
+                  <label>Country</label>
+                  <input type="text" value={origin.country} onChange={e => handleAddressChange('origin', 'country', e.target.value)} required readOnly />
+                  {renderError('originCountry')}
+                </div>
               </div>
             </div>
             {/* Destination Address */}
             <div>
               <h3>To (Recipient)</h3>
               <div className="form-grid">
-                <div className="form-field"><label>Full Name</label><input type="text" value={destination.name} onChange={e => handleAddressChange('destination', 'name', e.target.value)} required /></div>
-                <div className="form-field"><label>Street Address</label><input type="text" value={destination.street} onChange={e => handleAddressChange('destination', 'street', e.target.value)} required /></div>
+                <div className="form-field">
+                  <label>Full Name</label>
+                  <input type="text" value={destination.name} onChange={e => handleAddressChange('destination', 'name', e.target.value)} required />
+                  {renderError('destinationName')}
+                </div>
+                 <div className="form-field">
+                   <label>Email Address</label>
+                   <input type="email" value={destination.email} onChange={e => handleAddressChange('destination', 'email', e.target.value)} placeholder="For verification & notifications" required />
+                   {renderError('destinationEmail')}
+                 </div>
+                <div className="form-field">
+                  <label>Street Address</label>
+                  <input type="text" value={destination.street} onChange={e => handleAddressChange('destination', 'street', e.target.value)} required />
+                  {renderError('destinationStreet')}
+                </div>
                  <AddressAutocomplete
                     label="City"
                     value={destination.cityStateZip}
                     onChange={e => handleAddressChange('destination', 'cityStateZip', e.target.value)}
                     onSelect={city => handleAutocompleteSelect('destination', city)}
                     placeholder="e.g., London"
+                    error={errors.destinationCity}
                 />
-                <div className="form-field"><label>Country</label><input type="text" value={destination.country} onChange={e => handleAddressChange('destination', 'country', e.target.value)} required readOnly /></div>
+                <div className="form-field">
+                  <label>Country</label>
+                  <input type="text" value={destination.country} onChange={e => handleAddressChange('destination', 'country', e.target.value)} required readOnly />
+                  {renderError('destinationCountry')}
+                </div>
               </div>
             </div>
           </div>
@@ -250,31 +313,20 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
         <section className="form-section">
           <h2 className="form-section-title">Delivery Service</h2>
           <div className="service-options">
-            <div className={`service-option ${service === 'Standard' ? 'selected' : ''}`} onClick={() => setService('Standard')}>
-              <h3 className="service-option-title">Standard</h3>
-              <p className="service-option-details">5-7 Business Days</p>
-              <span className="service-option-price">${SERVICE_COSTS['Standard']}</span>
-            </div>
-            <div className={`service-option ${service === 'Express' ? 'selected' : ''}`} onClick={() => setService('Express')}>
-              <h3 className="service-option-title">Express</h3>
-              <p className="service-option-details">2-3 Business Days</p>
-              <span className="service-option-price">${SERVICE_COSTS['Express']}</span>
-            </div>
-            <div className={`service-option ${service === 'Overnight' ? 'selected' : ''}`} onClick={() => setService('Overnight')}>
-              <h3 className="service-option-title">Overnight</h3>
-              <p className="service-option-details">Next Business Day</p>
-              <span className="service-option-price">${SERVICE_COSTS['Overnight']}</span>
-            </div>
-            <div className={`service-option ${service === 'Same-Day' ? 'selected' : ''}`} onClick={() => setService('Same-Day')}>
-              <h3 className="service-option-title">Same-Day</h3>
-              <p className="service-option-details">Within 12 hours</p>
-              <span className="service-option-price">${SERVICE_COSTS['Same-Day']}</span>
-            </div>
-            <div className={`service-option ${service === 'Weekend' ? 'selected' : ''}`} onClick={() => setService('Weekend')}>
-              <h3 className="service-option-title">Weekend</h3>
-              <p className="service-option-details">Guaranteed Saturday</p>
-              <span className="service-option-price">${SERVICE_COSTS['Weekend']}</span>
-            </div>
+            {SERVICES.map((s) => (
+                <div 
+                    key={s.name}
+                    className={`service-option ${service === s.name ? 'selected' : ''}`} 
+                    onClick={() => setService(s.name)}
+                >
+                    <h3 className="service-option-title">
+                        <Icon name={s.icon} />
+                        <span>{s.name}</span>
+                    </h3>
+                    <p className="service-option-details">{s.timeframe}</p>
+                    <span className="service-option-price">${s.cost}</span>
+                </div>
+            ))}
           </div>
           
            <div className="submit-button-container">

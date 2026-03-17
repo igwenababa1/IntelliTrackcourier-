@@ -14,6 +14,9 @@ import ShipmentReceipt from './ShipmentReceipt';
 import DeliveryVault from './DeliveryVault';
 import ZenGarden from './ZenGarden';
 import AIInsights from './AIInsights';
+import StreetViewModal from './StreetViewModal';
+import AdvancedLogisticsPanel from './AdvancedLogisticsPanel';
+import { STREET_VIEW_IMAGES } from '../data/streetViewImages';
 
 
 interface TrackingDisplayProps {
@@ -41,6 +44,7 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
   const [isZenMode, setIsZenMode] = useState(false);
   const [packageImage, setPackageImage] = useState<string | null>(null);
   const [isImageLoading, setIsImageLoading] = useState(true);
+  const [streetViewLocation, setStreetViewLocation] = useState<string | null>(null);
 
 
   const getContentsSummary = (details: PackageDetails): string => {
@@ -52,20 +56,37 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
   useEffect(() => {
     const fetchImage = async () => {
         if (!packageDetails) return;
+        
+        const cacheKey = `package-image-${packageDetails.id}`;
+        const cachedImage = sessionStorage.getItem(cacheKey);
+        
+        if (cachedImage) {
+            if (cachedImage === 'FAILED') {
+                setPackageImage(null);
+            } else {
+                setPackageImage(cachedImage);
+            }
+            setIsImageLoading(false);
+            return;
+        }
+
         setIsImageLoading(true);
         try {
             const summary = getContentsSummary(packageDetails);
             const imageUrl = await generatePackageImage(summary);
             setPackageImage(imageUrl);
+            sessionStorage.setItem(cacheKey, imageUrl); // Cache success
         } catch (error) {
             console.error("Failed to generate package image:", error);
-            setPackageImage(null); // Set to null to show an error state if needed
+            setPackageImage(null);
+            sessionStorage.setItem(cacheKey, 'FAILED'); // Cache failure
         } finally {
             setIsImageLoading(false);
         }
     };
     fetchImage();
-  }, [packageDetails]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [packageDetails?.id]);
 
 
   const formatDate = (dateString: string) => {
@@ -82,12 +103,13 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
     today.setHours(0, 0, 0, 0);
     delivery.setHours(0, 0, 0, 0);
 
-    if (delivery < today) {
-        return 'Delivery is overdue';
-    }
-
     const differenceInTime = delivery.getTime() - today.getTime();
-    const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+    const differenceInDays = Math.round(differenceInTime / (1000 * 3600 * 24));
+
+    if (differenceInDays < 0) {
+        const overdueDays = Math.abs(differenceInDays);
+        return `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue`;
+    }
     
     if (differenceInDays === 0) {
         return "Arriving today";
@@ -104,9 +126,24 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
     if (s.includes('out for delivery')) return 'status-badge--delivery';
     return 'status-badge--transit';
   };
+  
+  const handleViewStreet = (location: string) => {
+    setStreetViewLocation(location);
+  };
+  
+  const findImageUrlForLocation = (location: string): string => {
+    const cityName = location.split(',')[0].trim();
+    return STREET_VIEW_IMAGES[cityName] || STREET_VIEW_IMAGES.Default;
+  };
+
 
   const daysRemainingText = calculateDaysRemaining(packageDetails.estimatedDelivery);
   const journeyPath = getJourneyPath(packageDetails.history);
+
+  const handleDeliveryConfirm = (type: 'photo' | 'audio' | 'signature', data: string) => {
+    onAddEvidence(type, data);
+    onShowChat(`I've just provided a ${type} confirmation for the delivery of package ${packageDetails.id}. Please add this to the record.`);
+  };
 
   const renderActiveView = () => {
     switch (activeView) {
@@ -126,6 +163,9 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
                 event={event}
                 isLast={index === 0}
                 icon={getIconForStatus(event.status)}
+                onViewStreet={handleViewStreet}
+                onAddEvidence={handleDeliveryConfirm}
+                hasEvidence={!!packageDetails.deliveryEvidence && (!!packageDetails.deliveryEvidence.photo || !!packageDetails.deliveryEvidence.signature || !!packageDetails.deliveryEvidence.audio)}
               />
             ))}
           </div>
@@ -136,6 +176,7 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
   const isDelivered = packageDetails.status.toLowerCase() === 'delivered';
 
   return (
+    <>
     <div className="tracking-display-container">
       <header className="advanced-header-container">
           <video 
@@ -229,6 +270,8 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
            {/* AI Insights Section */}
           <AIInsights history={packageDetails.history} />
 
+          {/* Advanced Logistics Features */}
+          <AdvancedLogisticsPanel details={packageDetails} />
 
           <div className="address-container">
             <div className="address-icon">
@@ -296,10 +339,21 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
           )}
 
 
-          <ShipmentActions packageDetails={packageDetails} onShowChat={onShowChat} onAddEvidence={onAddEvidence} />
+          <ShipmentActions packageDetails={packageDetails} onShowChat={onShowChat} />
         </aside>
       </div>
     </div>
+     {streetViewLocation && (
+        <StreetViewModal
+            isOpen={!!streetViewLocation}
+            onClose={() => setStreetViewLocation(null)}
+            locationData={{
+              name: streetViewLocation,
+              imageUrl: findImageUrlForLocation(streetViewLocation)
+            }}
+        />
+     )}
+    </>
   );
 };
 

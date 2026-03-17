@@ -277,22 +277,24 @@ const SignatureConfirmationModal: React.FC<{
 }> = ({ onConfirm, onClose }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
   const [playSuccess] = useSound(CONFIRM_SOUND, 0.5);
 
   const getCoords = (event: MouseEvent | TouchEvent): { x: number, y: number } => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    if (event instanceof TouchEvent) {
+    if ('touches' in event) {
       return { x: event.touches[0].clientX - rect.left, y: event.touches[0].clientY - rect.top };
     }
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    return { x: (event as MouseEvent).clientX - rect.left, y: (event as MouseEvent).clientY - rect.top };
   };
 
   const startDrawing = useCallback((event: MouseEvent | TouchEvent) => {
     const ctx = canvasRef.current?.getContext('2d');
     if (!ctx) return;
     isDrawingRef.current = true;
+    setHasDrawn(true);
     const { x, y } = getCoords(event);
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -353,10 +355,12 @@ const SignatureConfirmationModal: React.FC<{
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setHasDrawn(false);
     }
   };
 
   const handleConfirm = () => {
+    if (!hasDrawn) return;
     const canvas = canvasRef.current;
     if (canvas) {
       playSuccess();
@@ -383,7 +387,7 @@ const SignatureConfirmationModal: React.FC<{
         <canvas ref={canvasRef} width="400" height="200" className="signature-canvas" />
         <div style={modalStyles.actions}>
           <button style={{...modalStyles.actionButton, ...modalStyles.secondaryButton}} onClick={handleClear}>Clear</button>
-          <button style={{...modalStyles.actionButton, ...modalStyles.primaryButton}} onClick={handleConfirm}>Confirm</button>
+          <button style={{...modalStyles.actionButton, ...modalStyles.primaryButton, opacity: hasDrawn ? 1 : 0.5, cursor: hasDrawn ? 'pointer' : 'not-allowed'}} onClick={handleConfirm} disabled={!hasDrawn}>Confirm</button>
         </div>
       </div>
     </div>

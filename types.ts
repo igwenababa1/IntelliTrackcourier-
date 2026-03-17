@@ -1,5 +1,3 @@
-
-
 // Fix: Removed circular dependency by defining and exporting the City interface here.
 export interface City {
   name: string;
@@ -21,6 +19,7 @@ export interface Address {
   street: string;
   cityStateZip: string;
   country: string;
+  email: string;
 }
 
 export interface DeclaredItem {
@@ -33,10 +32,10 @@ export interface DeclaredItem {
 export interface AIAnalysisResult {
     summary: string;
     confidence: number;
-    verificationPoints: {
-        key: string;
-        value: string;
-    }[];
+    packageCondition: string;
+    locationSafety: string;
+    signatureLegibility: string;
+    audioAnalysis?: string;
 }
 
 export interface DeliveryEvidence {

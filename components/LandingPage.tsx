@@ -39,6 +39,14 @@ async function decodeAudioData(
   return buffer;
 }
 
+const THEME_COLORS = {
+    'Indigo': '#4f46e5',
+    'Emerald': '#10b981',
+    'Amber': '#f59e0b',
+    'Sky': '#0ea5e9',
+    'Fuchsia': '#d946ef',
+};
+
 
 const LandingPage: React.FC<LandingPageProps> = ({ onProceed }) => {
   const [isAudioLoading, setIsAudioLoading] = useState(true);
@@ -60,9 +68,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onProceed }) => {
     const prepareSpeech = async () => {
       try {
         const base64Audio = await generateWelcomeSpeech();
-        const decodedBytes = decode(base64Audio);
-        const buffer = await decodeAudioData(decodedBytes, audioContext, 24000, 1);
-        setAudioBuffer(buffer);
+        if (base64Audio) {
+            const decodedBytes = decode(base64Audio);
+            const buffer = await decodeAudioData(decodedBytes, audioContext, 24000, 1);
+            setAudioBuffer(buffer);
+        }
       } catch (error) {
         console.error("Failed to prepare welcome speech:", error);
       } finally {
@@ -96,6 +106,31 @@ const LandingPage: React.FC<LandingPageProps> = ({ onProceed }) => {
     // Call the parent handler to start the next phase (animation)
     setTimeout(onProceed, 500);
   }, [audioContext, audioBuffer, onProceed]);
+
+  // --- Theme Customizer Logic ---
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [activeColor, setActiveColor] = useState(() => {
+      return localStorage.getItem('intellitrack-theme-color') || THEME_COLORS.Indigo;
+  });
+
+  const handleSetTheme = (colorValue: string) => {
+      document.documentElement.style.setProperty('--primary-color', colorValue);
+      localStorage.setItem('intellitrack-theme-color', colorValue);
+      setActiveColor(colorValue);
+  };
+
+  const ThemeCustomizer = () => (
+      <div className="theme-customizer">
+          <div className={`theme-palette ${!isPaletteOpen ? 'hidden' : ''}`}>
+              {Object.entries(THEME_COLORS).map(([name, color]) => (
+                  <div key={name} className={`theme-swatch ${activeColor === color ? 'active' : ''}`} style={{ backgroundColor: color }} onClick={() => handleSetTheme(color)} title={name} />
+              ))}
+          </div>
+          <button className="theme-customizer-toggle" onClick={() => setIsPaletteOpen(!isPaletteOpen)} title="Customize Theme">
+              <Icon name="palette" />
+          </button>
+      </div>
+  );
 
   return (
     <div className="landing-overlay">
@@ -132,6 +167,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onProceed }) => {
           </button>
         </div>
       </div>
+      <ThemeCustomizer />
     </div>
   );
 };

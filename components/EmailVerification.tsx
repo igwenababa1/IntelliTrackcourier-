@@ -99,7 +99,7 @@ const EmailVerification: React.FC<EmailVerificationProps> = ({ onVerify, userEma
             {otp.map((data, index) => (
               <input
                 key={index}
-                ref={el => inputRefs.current[index] = el}
+                ref={el => { inputRefs.current[index] = el; }}
                 className="otp-input"
                 type="text"
                 name="otp"

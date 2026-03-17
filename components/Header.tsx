@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import Icon from './Icon';
 import { Notification } from '../types';
@@ -13,6 +11,7 @@ interface HeaderProps {
   onLogoutClick: () => void;
   appState: 'welcome' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'generating_report';
   onChatClick: () => void;
+  onFeedbackClick: () => void;
   notifications: Notification[];
   unreadCount: number;
   onMarkNotificationsRead: () => void;
@@ -26,6 +25,7 @@ const Header: React.FC<HeaderProps> = ({
   onLogoutClick, 
   appState, 
   onChatClick,
+  onFeedbackClick,
   notifications,
   unreadCount,
   onMarkNotificationsRead
@@ -45,6 +45,36 @@ const Header: React.FC<HeaderProps> = ({
   const isTrackingActive = appState === 'tracking' || appState === 'generating_report';
   const isHomeActive = appState === 'welcome' || appState === 'error';
   const isCreateActive = appState === 'create_shipment';
+  
+  const MobileNavMenu = () => (
+    <div className="mobile-nav-overlay">
+        <button className="mobile-nav-close" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close navigation menu">
+            <Icon name="close" />
+        </button>
+        <div className="mobile-nav-layout">
+            <div className="mobile-nav-primary">
+                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onHomeClick); }} className={`primary-nav-link ${isHomeActive ? 'active' : ''}`}>
+                    <div className="primary-nav-icon"><Icon name="home" /></div>
+                    <div className="primary-nav-text"><h4>Home</h4><p>Return to the main screen</p></div>
+                </a>
+                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onNewShipmentClick); }} className={`primary-nav-link ${isCreateActive ? 'active' : ''}`}>
+                     <div className="primary-nav-icon"><Icon name="package" /></div>
+                    <div className="primary-nav-text"><h4>New Shipment</h4><p>Create a new shipment</p></div>
+                </a>
+                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onTrackClick); }} className={`primary-nav-link ${isTrackingActive ? 'active' : ''}`}>
+                    <div className="primary-nav-icon"><Icon name="truck" /></div>
+                    <div className="primary-nav-text"><h4>Track</h4><p>View your shipment status</p></div>
+                </a>
+            </div>
+            <div className="mobile-nav-secondary">
+                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onChatClick); }} className="secondary-nav-link">AI Assistant</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onFeedbackClick); }} className="secondary-nav-link">Feedback</a>
+                <a href={`mailto:${supportEmail}`} className="secondary-nav-link">Contact Support</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onLogoutClick); }} className="secondary-nav-link">Log Out</a>
+            </div>
+        </div>
+    </div>
+  );
 
   return (
     <header className="app-header">
@@ -61,6 +91,7 @@ const Header: React.FC<HeaderProps> = ({
         <a href="#" onClick={(e) => handleLinkClick(e, onNewShipmentClick)} className={isCreateActive ? 'active' : ''}>New Shipment</a>
         <a href="#" onClick={(e) => handleLinkClick(e, onTrackClick)} className={isTrackingActive ? 'active' : ''}>Track</a>
         <a href="#" onClick={(e) => handleLinkClick(e, onChatClick)}>AI Assistant</a>
+        <a href="#" onClick={(e) => handleLinkClick(e, onFeedbackClick)}>Feedback</a>
         <a href={`mailto:${supportEmail}`} title="Contact Customer Support">Contact</a>
         
         <NotificationBell 
@@ -95,21 +126,7 @@ const Header: React.FC<HeaderProps> = ({
         </svg>
       </button>
 
-      {isMobileMenuOpen && (
-        <div className="mobile-nav-overlay">
-            <button className="mobile-nav-close" onClick={() => setIsMobileMenuOpen(false)} aria-label="Close navigation menu">
-                <Icon name="close" />
-            </button>
-            <div className="mobile-nav-links">
-                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onHomeClick); }} className={isHomeActive ? 'active' : ''}>Home</a>
-                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onNewShipmentClick); }} className={isCreateActive ? 'active' : ''}>New Shipment</a>
-                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onTrackClick); }} className={isTrackingActive ? 'active' : ''}>Track</a>
-                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onChatClick); }}>AI Assistant</a>
-                <a href={`mailto:${supportEmail}`}>Contact</a>
-                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onLogoutClick); }}>Log Out</a>
-            </div>
-        </div>
-      )}
+      {isMobileMenuOpen && <MobileNavMenu />}
 
     </header>
   );

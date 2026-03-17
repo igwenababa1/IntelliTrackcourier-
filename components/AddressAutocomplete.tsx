@@ -8,6 +8,7 @@ interface AddressAutocompleteProps {
   onSelect: (city: City) => void;
   label: string;
   placeholder?: string;
+  error?: string;
 }
 
 const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
@@ -16,6 +17,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   onSelect,
   label,
   placeholder = '',
+  error,
 }) => {
   const [suggestions, setSuggestions] = useState<City[]>([]);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -74,6 +76,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             }
         }}
       />
+      {error && <span className="error-text" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{error}</span>}
       {isDropdownVisible && suggestions.length > 0 && (
         <ul className="autocomplete-dropdown">
           {suggestions.map(city => (

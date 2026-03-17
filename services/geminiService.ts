@@ -1,5 +1,5 @@
 import { GoogleGenAI, Chat, Modality, Type } from "@google/genai";
-import { AIAnalysisResult, DeliveryEvidence, TrackingEvent } from "../types";
+import { AIAnalysisResult, DeliveryEvidence, TrackingEvent, PackageDetails } from "../types";
 
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -41,21 +41,54 @@ export async function generateWelcomeSpeech(): Promise<string> {
 }
 
 
+let currentPackageDetails: PackageDetails | null = null;
+
 /**
  * Initializes a new chat session with the Gemini API.
- * @param packageId The current package ID for context.
+ * @param packageDetails The current package details for context.
  */
-export function initializeChat(packageId: string | null): void {
+export function initializeChat(packageDetails: PackageDetails | null): void {
+  currentPackageDetails = packageDetails;
+  const packageId = packageDetails?.id || 'N/A';
   const systemInstruction = `You are a friendly and professional customer support assistant for IntelliTrack, a global courier service. 
     Your goal is to help users with their shipments. 
     Be concise and helpful. 
-    If you are asked about a specific shipment, refer to Package ID: ${packageId || 'N/A'}. 
-    Do not promise actions you cannot perform, like changing delivery details or issuing refunds directly. Instead, guide the user on how they could hypothetically do so through the official channels or by contacting support.`;
+    If you are asked about a specific shipment, refer to Package ID: ${packageId}. 
+    Do not promise actions you cannot perform, like changing delivery details or issuing refunds directly. Instead, guide the user on how they could hypothetically do so through the official channels or by contacting support.
+    You have access to tools to generate thematic images and provide shipment summaries. Use them when requested.
+    When you generate an image using the generatePackageImage tool, the tool will return a base64 image URL. You MUST display the image to the user using Markdown syntax: ![Thematic Image](<base64_image_url>).`;
     
   chat = ai.chats.create({
-    model: 'gemini-2.5-flash',
-    // FIX: systemInstruction should be a string, not an object.
-    config: { systemInstruction: systemInstruction },
+    model: 'gemini-3-flash-preview',
+    config: { 
+      systemInstruction: systemInstruction,
+      tools: [{
+        functionDeclarations: [
+          {
+            name: 'generatePackageImage',
+            description: 'Generates a thematic image representing the courier service or the package. Returns a base64 image URL.',
+            parameters: {
+              type: Type.OBJECT,
+              properties: {
+                itemDescription: {
+                  type: Type.STRING,
+                  description: 'A description of the item to generate an image for.'
+                }
+              },
+              required: ['itemDescription']
+            }
+          },
+          {
+            name: 'summarizeShipmentJourney',
+            description: 'Generates a human-readable summary of the shipment journey based on the tracking history.',
+            parameters: {
+              type: Type.OBJECT,
+              properties: {}
+            }
+          }
+        ]
+      }]
+    },
   });
 }
 
@@ -69,8 +102,36 @@ export async function sendMessage(message: string): Promise<string> {
     throw new Error('Chat not initialized. Call initializeChat first.');
   }
   try {
-    const response = await chat.sendMessage({ message });
-    return response.text;
+    let response = await chat.sendMessage({ message });
+    
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      for (const call of response.functionCalls) {
+        if (call.name === 'generatePackageImage') {
+          const args = call.args as any;
+          const imageUrl = await generatePackageImage(args.itemDescription);
+          response = await chat.sendMessage({
+            message: [{
+              functionResponse: {
+                name: call.name,
+                response: { imageUrl }
+              }
+            }] as any
+          });
+        } else if (call.name === 'summarizeShipmentJourney') {
+          const summary = currentPackageDetails ? await summarizeShipmentJourney(currentPackageDetails.history) : "No shipment history available.";
+          response = await chat.sendMessage({
+            message: [{
+              functionResponse: {
+                name: call.name,
+                response: { summary }
+              }
+            }] as any
+          });
+        }
+      }
+    }
+    
+    return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error) {
     console.error('Error sending message to Gemini API:', error);
     return "I'm sorry, I'm having trouble connecting to my services right now. Please try again later.";
@@ -127,7 +188,7 @@ export async function generateCreativeDescription(item: string): Promise<string>
   try {
     const prompt = `Generate a short, intriguing, one-sentence description for the following item, as if it were on a collectible card: "${item}"`;
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     return response.text.trim();
@@ -139,44 +200,72 @@ export async function generateCreativeDescription(item: string): Promise<string>
 
 /**
  * Analyzes delivery evidence using a multimodal model.
- * @param evidence An object containing base64 strings for photo and signature.
+ * @param evidence An object containing base64 strings for photo, signature, and audio.
  * @returns An AI-generated analysis of the delivery.
  */
-export async function analyzeDeliveryEvidence(evidence: { photo: string; signature: string; }): Promise<AIAnalysisResult> {
-    const photoPart = {
-        inlineData: { mimeType: 'image/jpeg', data: evidence.photo.split(',')[1] }
-    };
-    const signaturePart = {
-        inlineData: { mimeType: 'image/png', data: evidence.signature.split(',')[1] }
-    };
+export async function analyzeDeliveryEvidence(evidence: { photo?: string; signature?: string; audio?: string; }): Promise<AIAnalysisResult> {
+    const parts: any[] = [];
+    let prompt = `As a security auditor for a courier company, analyze the provided delivery evidence. Provide a concise analysis in JSON format based on the defined schema.\n\n`;
 
-    const prompt = `
-        As a security auditor for a courier company, analyze the provided delivery evidence.
-        1.  **Photo Analysis:** Examine the first image (the delivery photo). Describe where the package was left. Is it a safe location? Are there any visible obstructions or risks?
-        2.  **Signature Analysis:** Examine the second image (the signature). Is it legible? Does it appear to be a coherent signature or just a scribble?
-        3.  **Overall Assessment:** Based on both pieces of evidence, provide a summary and a confidence score (0-100) for this delivery's validity.
-    `;
-    
+    if (evidence.photo) {
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: evidence.photo.split(',')[1] } });
+        prompt += `1. **Package Condition:** Based on the photo, describe the package's condition. Is it intact, damaged, or wet?\n`;
+        prompt += `2. **Location Safety:** Assess the safety of where the package was left. Is it hidden from public view, exposed to weather, or in a secure lobby?\n`;
+    } else {
+        prompt += `1. **Package Condition:** Not available as no photo was provided.\n`;
+        prompt += `2. **Location Safety:** Not available as no photo was provided.\n`;
+    }
+
+    if (evidence.signature) {
+        parts.push({ inlineData: { mimeType: 'image/png', data: evidence.signature.split(',')[1] } });
+        prompt += `3. **Signature Legibility:** Analyze the signature. Is it a clear name, a scribble, or just a line?\n`;
+    } else {
+        prompt += `3. **Signature Legibility:** Not available as no signature was provided.\n`;
+    }
+
+    if (evidence.audio) {
+        parts.push({ inlineData: { mimeType: 'audio/webm', data: evidence.audio.split(',')[1] } });
+        prompt += `4. **Audio Analysis:** Analyze the audio recording. Is it a clear confirmation of delivery? Does the speaker sound like the recipient?\n`;
+    } else {
+        prompt += `4. **Audio Analysis:** Not available as no audio was provided.\n`;
+    }
+
+    prompt += `\nProvide an Overall Summary (one sentence) and a Confidence Score (0-100) based on all available evidence.`;
+
+    parts.unshift({ text: prompt });
+
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-pro",
-            contents: { parts: [{ text: prompt }, photoPart, signaturePart] },
+            model: "gemini-3.1-pro-preview",
+            contents: { parts },
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
                     properties: {
-                        summary: { type: Type.STRING },
-                        confidence: { type: Type.NUMBER },
-                        verificationPoints: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    key: { type: Type.STRING },
-                                    value: { type: Type.STRING }
-                                }
-                            }
+                        summary: {
+                            type: Type.STRING,
+                            description: "A brief, one-sentence summary of the delivery quality."
+                        },
+                        confidence: {
+                            type: Type.NUMBER,
+                            description: "A numerical score from 0 to 100 for delivery validity."
+                        },
+                        packageCondition: { 
+                            type: Type.STRING,
+                            description: "Assessment of the package's physical condition from the photo (e.g., 'Good', 'Damaged', 'Not visible')."
+                        },
+                        locationSafety: {
+                            type: Type.STRING,
+                            description: "Assessment of the delivery location's safety (e.g., 'Secure', 'Visible from street', 'Weather-exposed')."
+                        },
+                        signatureLegibility: {
+                            type: Type.STRING,
+                            description: "Assessment of the signature's clarity (e.g., 'Legible', 'Scribbled', 'Illegible')."
+                        },
+                        audioAnalysis: {
+                            type: Type.STRING,
+                            description: "Assessment of the audio recording (e.g., 'Clear confirmation', 'Unclear', 'Not provided')."
                         }
                     }
                 }
@@ -255,7 +344,7 @@ export async function summarizeShipmentJourney(history: TrackingEvent[]): Promis
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     return response.text.trim();
@@ -297,5 +386,58 @@ export async function generateGoodbyeSpeech(): Promise<string> {
     } catch (error) {
         console.error('Error generating goodbye speech with Gemini API:', error);
         throw error;
+    }
+}
+
+/**
+ * Analyzes user feedback using Gemini for categorization and prioritization.
+ * @param feedback An object containing the user's rating and comment.
+ * @returns A structured analysis of the feedback.
+ */
+export async function analyzeFeedback(feedback: { rating: number; category: string; comment: string }): Promise<{ priority: string; summary: string; }> {
+    const prompt = `
+        You are a product feedback analyst for a high-tech logistics company called IntelliTrack.
+        Analyze the following user feedback.
+        1. Assign a priority level from 'Low', 'Medium', 'High', or 'Critical'. High/Critical should be reserved for major bugs or security issues.
+        2. Provide a brief one-sentence summary of the user's core point.
+
+        User Feedback:
+        - Rating: ${feedback.rating}/5
+        - Category: ${feedback.category}
+        - Comment: "${feedback.comment}"
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        priority: {
+                            type: Type.STRING,
+                            description: "Priority level (Low, Medium, High, Critical)."
+                        },
+                        summary: {
+                            type: Type.STRING,
+                            description: "A one-sentence summary of the feedback."
+                        }
+                    }
+                }
+            }
+        });
+
+        const jsonStr = response.text.trim();
+        return JSON.parse(jsonStr);
+
+    } catch (error) {
+        console.error("Error analyzing feedback with Gemini:", error);
+        // Return a default response on error
+        return {
+            priority: 'Medium',
+            summary: 'Could not automatically analyze feedback. Needs manual review.'
+        };
     }
 }

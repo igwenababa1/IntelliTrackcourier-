@@ -31,13 +31,14 @@ const DeliveryVault: React.FC<DeliveryVaultProps> = ({ details, setPackageDetail
 
     useEffect(() => {
         const performAnalysis = async () => {
-            if (deliveryEvidence && deliveryEvidence.photo && deliveryEvidence.signature && !deliveryEvidence.aiAnalysis) {
+            if (deliveryEvidence && (deliveryEvidence.photo || deliveryEvidence.signature || deliveryEvidence.audio) && !deliveryEvidence.aiAnalysis) {
                 setIsLoading(true);
                 setError(null);
                 try {
                     const analysis = await analyzeDeliveryEvidence({
                         photo: deliveryEvidence.photo,
                         signature: deliveryEvidence.signature,
+                        audio: deliveryEvidence.audio,
                     });
                     
                     // Update the main packageDetails state with the new analysis
@@ -108,15 +109,37 @@ const DeliveryVault: React.FC<DeliveryVaultProps> = ({ details, setPackageDetail
                         </p>
                         <h4>Verification Points:</h4>
                         <ul className="verification-list">
-                            {deliveryEvidence.aiAnalysis.verificationPoints.map((point, index) => (
-                                <li key={index} className="verification-item">
-                                    <Icon name="check-circle" className="icon" />
-                                    <span><strong>{point.key}:</strong> {point.value}</span>
-                                </li>
-                            ))}
                             <li className="verification-item">
                                 <Icon name="check-circle" className="icon" />
-                                <span><strong>Confidence Score:</strong> {deliveryEvidence.aiAnalysis.confidence}%</span>
+                                <div className="verification-item-content">
+                                    <strong>Package Condition:</strong> <span>{deliveryEvidence.aiAnalysis.packageCondition}</span>
+                                </div>
+                            </li>
+                             <li className="verification-item">
+                                <Icon name="check-circle" className="icon" />
+                                <div className="verification-item-content">
+                                    <strong>Location Safety:</strong> <span>{deliveryEvidence.aiAnalysis.locationSafety}</span>
+                                </div>
+                            </li>
+                             <li className="verification-item">
+                                <Icon name="check-circle" className="icon" />
+                                <div className="verification-item-content">
+                                    <strong>Signature Legibility:</strong> <span>{deliveryEvidence.aiAnalysis.signatureLegibility}</span>
+                                </div>
+                            </li>
+                            {deliveryEvidence.aiAnalysis.audioAnalysis && (
+                                <li className="verification-item">
+                                    <Icon name="check-circle" className="icon" />
+                                    <div className="verification-item-content">
+                                        <strong>Audio Analysis:</strong> <span>{deliveryEvidence.aiAnalysis.audioAnalysis}</span>
+                                    </div>
+                                </li>
+                            )}
+                            <li className="verification-item">
+                                <Icon name="check-circle" className="icon" />
+                                <div className="verification-item-content">
+                                    <strong>Confidence Score:</strong> <span>{deliveryEvidence.aiAnalysis.confidence}%</span>
+                                </div>
                             </li>
                         </ul>
                     </div>

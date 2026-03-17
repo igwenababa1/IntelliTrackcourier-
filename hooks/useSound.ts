@@ -33,7 +33,7 @@ const useSound = (soundUrl: string, volume: number = 0.5): [() => void, boolean]
 
   useEffect(() => {
     // Pre-decode the audio data when the hook mounts.
-    const loadSound = async () => {
+    const loadSound = () => {
       // Don't proceed if context is not available, or URL is missing.
       if (!audioContext || !soundUrl) {
         return;
@@ -45,9 +45,19 @@ const useSound = (soundUrl: string, volume: number = 0.5): [() => void, boolean]
       }
 
       try {
-        // Fetch is a modern way to handle data URLs and get an ArrayBuffer.
-        const response = await fetch(soundUrl);
-        const arrayBuffer = await response.arrayBuffer();
+        // Manually decode the base64 data URL to an ArrayBuffer.
+        // This is more reliable than using fetch() for data URLs, which can fail in some environments.
+        const base64 = soundUrl.split(',')[1];
+        if (!base64) {
+          throw new Error("Invalid data URL format.");
+        }
+        const binaryString = atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const arrayBuffer = bytes.buffer;
 
         // Decode the audio data into an AudioBuffer. This is async.
         // The callback style is used for broader browser compatibility.
@@ -63,8 +73,8 @@ const useSound = (soundUrl: string, volume: number = 0.5): [() => void, boolean]
           }
         );
       } catch (error) {
-        // This catch block is for fetch/network errors.
-        console.error(`Error fetching or processing sound URL:`, error);
+        // This catch block is for data URL parsing or decoding errors.
+        console.error(`Error processing sound URL:`, error);
       }
     };
 

@@ -41,7 +41,7 @@ const getNextLocation = (currentLocation: string, destinationLocation: string): 
  * @returns The updated package details with a new event.
  */
 export const simulateNextEvent = (packageDetails: PackageDetails): PackageDetails => {
-  if (packageDetails.status.toLowerCase() === 'delivered') {
+  if (packageDetails.status.toLowerCase() === 'delivered' || packageDetails.status.toLowerCase().includes('held by customs')) {
     return packageDetails;
   }
 
@@ -54,7 +54,6 @@ export const simulateNextEvent = (packageDetails: PackageDetails): PackageDetail
   const formattedDate = `${nextEventDate.toISOString().slice(0, 10)}, ${nextEventDate.toTimeString().slice(0, 5)}`;
 
   let newEvent: TrackingEvent;
-  const currentCityName = lastEvent.location.split(',')[0].trim();
   const destinationCity = CITIES.find(c => packageDetails.destination.cityStateZip.includes(c.name));
 
   // Determine the next logical step in the journey
@@ -67,7 +66,12 @@ export const simulateNextEvent = (packageDetails: PackageDetails): PackageDetail
     newEvent = { date: formattedDate, status: 'Arrived at International Hub', location: `${nextCity.name}, ${nextCity.country}`, partner: PARTNERS.INTERNATIONAL, details: "Processing at sort facility." };
   } else if (status.includes('arrived at international hub')) {
      if (destinationCity && lastEvent.location.includes(destinationCity.country)) {
-         newEvent = { date: formattedDate, status: 'International shipment release - Import', location: lastEvent.location, partner: getPartnerForCountry(destinationCity.country), details: "Customs clearance processing complete." };
+         // Add a small chance of being held by customs
+         if (Math.random() < 0.1) { // 10% chance
+            newEvent = { date: formattedDate, status: 'Held by Customs', location: lastEvent.location, partner: getPartnerForCountry(destinationCity.country), details: "Package is undergoing inspection by local customs authorities. Please monitor tracking for updates." };
+         } else {
+            newEvent = { date: formattedDate, status: 'International shipment release - Import', location: lastEvent.location, partner: getPartnerForCountry(destinationCity.country), details: "Customs clearance processing complete." };
+         }
      } else {
          newEvent = { date: formattedDate, status: 'Departed from International Hub', location: lastEvent.location, partner: PARTNERS.INTERNATIONAL };
      }

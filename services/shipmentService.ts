@@ -18,12 +18,14 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
       street: '123 Innovation Dr',
       cityStateZip: 'Shanghai 200000',
       country: 'China',
+      email: 'shipping@globaltech.example.cn',
     },
     destination: {
       name: 'Jane Doe',
       street: '456 Market St',
       cityStateZip: 'New York, NY 10001',
       country: 'USA',
+      email: 'jane.doe@example.com',
     },
     service: 'International Priority',
     weight: '2.5 kg',
@@ -52,12 +54,14 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
       street: '789 Broadway',
       cityStateZip: 'New York, NY 10003',
       country: 'USA',
+      email: 'john.smith@example.com',
     },
     destination: {
       name: 'Emily White',
       street: '10 Downing St',
       cityStateZip: 'London SW1A 2AA',
       country: 'United Kingdom',
+      email: 'emily.white@example.gov.uk',
     },
     service: 'Express Worldwide',
     weight: '0.8 kg',
@@ -90,12 +94,14 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
       street: 'Shibuya Crossing',
       cityStateZip: 'Tokyo 150-8010',
       country: 'Japan',
+      email: 'sales@anime-collectibles.example.jp',
     },
     destination: {
       name: 'Mark Johnson',
       street: '1 Hollywood Blvd',
       cityStateZip: 'Los Angeles, CA 90028',
       country: 'USA',
+      email: 'mark.j@example.com',
     },
     service: 'Standard International',
     weight: '5.1 kg',
@@ -107,6 +113,80 @@ const MOCK_DB: { [key: string]: PackageDetails } = {
     insuranceValue: 0,
     specialHandling: ['Fragile'],
     advancedOptions: [],
+  },
+  'IT246813579': {
+    id: 'IT246813579',
+    status: 'Processing',
+    estimatedDelivery: '2024-09-01',
+    history: [
+      { date: '2024-08-12, 16:00', status: 'Shipment picked up from sender', location: 'Sydney, Australia', details: 'Package collected by IntelliTrack courier.', partner: 'IntelliTrack Global' },
+      { date: '2024-08-12, 10:30', status: 'Shipment Created', location: 'Sydney, Australia', details: 'Shipping label created, awaiting pickup.', partner: 'IntelliTrack Global' },
+    ],
+    origin: {
+      name: 'Aussie Exports',
+      street: '1 Bondi Beach',
+      cityStateZip: 'Sydney, NSW 2026',
+      country: 'Australia',
+      email: 'exports@aussie.example.com.au',
+    },
+    destination: {
+      name: 'California Imports',
+      street: '200 Santa Monica Pier',
+      cityStateZip: 'Los Angeles, CA 90401',
+      country: 'USA',
+      email: 'imports@cali.example.com',
+    },
+    service: 'Standard',
+    weight: '3.1 kg',
+    dimensions: '40cm x 40cm x 10cm',
+    declaredItems: [
+        { description: 'Hand-carved Boomerang', quantity: 2, value: 75, countryOfOrigin: 'Australia' },
+        { description: 'Local Surf Wax', quantity: 5, value: 10, countryOfOrigin: 'Australia' },
+    ],
+    insuranceValue: 200,
+    specialHandling: ['Handle with Care'],
+    advancedOptions: [],
+  },
+  'IT135792468': {
+    id: 'IT135792468',
+    status: 'Delivered',
+    estimatedDelivery: '2024-08-10',
+    history: [
+      { date: '2024-08-10, 14:20', status: 'Delivered', location: 'Dubai, UAE', details: 'Delivered to front door.', partner: 'IntelliTrack Global' },
+      { date: '2024-08-10, 09:00', status: 'Out for delivery', location: 'Dubai, UAE', partner: 'IntelliTrack Global' },
+      { date: '2024-08-09, 11:00', status: 'Arrived at local facility', location: 'Dubai, UAE', partner: 'IntelliTrack Global' },
+      { date: '2024-08-08, 04:00', status: 'Departed from hub', location: 'Frankfurt, Germany', partner: 'DHL Express' },
+      { date: '2024-08-07, 18:00', status: 'Arrived at International Hub', location: 'Frankfurt, Germany', partner: 'DHL Express' },
+      { date: '2024-08-06, 22:00', status: 'Shipment picked up', location: 'Tokyo, Japan', partner: 'IntelliTrack Global' },
+    ],
+    origin: {
+      name: 'Tokyo Electronics',
+      street: '1-1-2 Oshiage, Sumida',
+      cityStateZip: 'Tokyo 131-0045',
+      country: 'Japan',
+      email: 'shipping@tokyo-electronics.example.jp',
+    },
+    destination: {
+      name: 'Dubai Luxury Goods',
+      street: '1 Sheikh Mohammed bin Rashid Blvd',
+      cityStateZip: 'Dubai',
+      country: 'UAE',
+      email: 'purchasing@dubai-luxury.example.ae',
+    },
+    service: 'Express',
+    weight: '1.2 kg',
+    dimensions: '20cm x 20cm x 15cm',
+    declaredItems: [
+        { description: 'High-end Digital Camera', quantity: 1, value: 1200, countryOfOrigin: 'Japan' },
+        { description: 'High-Speed Memory Cards', quantity: 3, value: 50, countryOfOrigin: 'Japan' },
+    ],
+    insuranceValue: 1500,
+    specialHandling: ['Fragile', 'Electronics'],
+    advancedOptions: ['Tamper-Proof Seal'],
+    deliveryEvidence: {
+        signature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAFoCAYAAABa2elYAAAB/ElEQVR4nO3BMQEAAADCoPVPbQo/oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgA8NAAAB/2G20wAAAABJRU5ErkJggg==',
+        photo: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQIBAQICAgICAgICAwUDAwMDAwYEBAMFBwYHBwcGBwcICQsJCAgKCAcHCg0KCgsMDAwMBwkODw0MDgsMDAz/2wBDAQICAgMDAwYDAwYMCAcIDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/ALID/9k='
+    }
   },
 };
 
@@ -251,6 +331,22 @@ export const addDeliveryEvidence = (packageId: string, type: 'photo' | 'signatur
             ...currentDetails,
             deliveryEvidence: newEvidence,
         };
+
+        if (updatedDetails.status.toLowerCase() !== 'delivered') {
+            const now = new Date();
+            const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            const deliveryEvent: TrackingEvent = {
+                date: formattedDate,
+                status: 'Delivered',
+                location: currentDetails.destination.cityStateZip,
+                details: `Proof of Delivery: ${type} captured.`,
+                partner: 'IntelliTrack Global',
+            };
+            
+            updatedDetails.status = 'Delivered';
+            updatedDetails.history = [deliveryEvent, ...currentDetails.history];
+        }
         
         MOCK_DB[packageId] = updatedDetails;
         console.log(`Added ${type} evidence to ${packageId}.`);

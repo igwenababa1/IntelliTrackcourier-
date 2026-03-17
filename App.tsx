@@ -1,9 +1,7 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { PackageDetails, NewShipmentData, Notification } from './types';
 import { getShipmentDetails, createShipment, addDeliveryEvidence } from './services/shipmentService';
-import { initializeChat } from './services/geminiService';
+import { initializeChat, analyzeFeedback } from './services/geminiService';
 import { simulateNextEvent } from './services/shipmentSimulator';
 import Header from './components/Header';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -25,6 +23,9 @@ import PackageIntroAnimation from './components/PackageIntroAnimation';
 import EmailVerification from './components/EmailVerification';
 import Footer from './components/Footer';
 import GeneratingReportScreen from './components/GeneratingReportScreen';
+import FeedbackModal from './components/FeedbackModal';
+import { DeliveryConfirmationEmail, CustomsHoldEmail } from './components/EmailNotifications';
+import BottomNav from './components/BottomNav';
 
 type AppState = 'landing' | 'intro_animation' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'logging_out';
 
@@ -46,14 +47,27 @@ const App: React.FC = () => {
   const [isLogoutWarningVisible, setIsLogoutWarningVisible] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(LOGOUT_COUNTDOWN_SECONDS);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   // Notification state
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastNotifiedStatus, setLastNotifiedStatus] = useState<string | null>(null);
+  
+  // Simulated Email Notification State
+  const [showDeliveryEmailForPackage, setShowDeliveryEmailForPackage] = useState<PackageDetails | null>(null);
+  const [showCustomsHoldEmailForPackage, setShowCustomsHoldEmailForPackage] = useState<PackageDetails | null>(null);
 
 
   // Sound effect
   const [playSuccessSound] = useSound(SUCCESS_SOUND, 0.5);
+  
+  // Apply theme from localStorage on initial load
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('intellitrack-theme-color');
+    if (storedTheme) {
+      document.documentElement.style.setProperty('--primary-color', storedTheme);
+    }
+  }, []);
   
   // Check for first visit in session
   useEffect(() => {
@@ -113,7 +127,7 @@ const App: React.FC = () => {
       if (details) {
         playSuccessSound();
         setPackageDetails(details);
-        initializeChat(details.id);
+        initializeChat(details);
         setLastNotifiedStatus(details.status);
       } else {
         setError(`No shipment found for Tracking ID: ${trackingId}. Please check the ID and try again.`);
@@ -140,15 +154,25 @@ const App: React.FC = () => {
   // Live simulation effect for package updates
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (appState === 'tracking' && packageDetails && packageDetails.status !== 'Delivered') {
+    if (appState === 'tracking' && packageDetails && !packageDetails.status.toLowerCase().includes('delivered')) {
       interval = setInterval(() => {
         setPackageDetails(prevDetails => {
           if (prevDetails) {
             const updatedDetails = simulateNextEvent(prevDetails);
+            const newStatus = updatedDetails.status.toLowerCase();
+            const oldStatus = lastNotifiedStatus?.toLowerCase();
+
             // Check if status changed to send a notification
-            if (updatedDetails.status !== lastNotifiedStatus) {
+            if (newStatus !== oldStatus) {
                 addNotification(`Status Update: ${updatedDetails.status}`, `Your package ${updatedDetails.id} is now at ${updatedDetails.history[0].location}.`);
                 setLastNotifiedStatus(updatedDetails.status);
+                
+                // Trigger email modals on specific status changes
+                if (newStatus.includes('delivered')) {
+                    setShowDeliveryEmailForPackage(updatedDetails);
+                } else if (newStatus.includes('held by customs')) {
+                    setShowCustomsHoldEmailForPackage(updatedDetails);
+                }
             }
             return updatedDetails;
           }
@@ -194,7 +218,7 @@ const App: React.FC = () => {
     if (packageDetails) {
       addNotification('Shipment Verified', `Shipment ${packageDetails.id} has been confirmed and is being processed.`);
       setAppState('tracking');
-      initializeChat(packageDetails.id);
+      initializeChat(packageDetails);
     } else {
       // Fallback in case packageDetails is somehow null
       resetToHome();
@@ -259,6 +283,19 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSubmitFeedback = async (feedback: { rating: number; category: string; comment: string }) => {
+    console.log("Submitting feedback:", feedback);
+    try {
+      const analysis = await analyzeFeedback(feedback);
+      console.log("Gemini Feedback Analysis:", analysis);
+      // In a real app, you would save this analysis to your database
+      addNotification('Feedback Received', `AI analysis summary: "${analysis.summary}"`);
+    } catch (error) {
+      console.error("Failed to process feedback:", error);
+      addNotification('Feedback Error', 'There was an issue submitting your feedback.');
+    }
+  };
+
   const renderContent = () => {
     if (isScanning) {
         return <QRCodeScanner onScan={handleScanComplete} onClose={() => setIsScanning(false)} />;
@@ -279,7 +316,7 @@ const App: React.FC = () => {
       case 'create_shipment':
         return <CreateShipment onCreateShipment={handleCreateShipment} isLoading={isLoading} />;
       case 'email_verification':
-        return <EmailVerification onVerify={handleVerificationSuccess} userEmail={packageDetails?.destination.name || 'your email'}/>
+        return <EmailVerification onVerify={handleVerificationSuccess} userEmail={packageDetails?.destination.email || 'your email'}/>
       case 'logging_out':
         return <LogoutScreen onComplete={resetToHome} />;
       case 'error':
@@ -320,6 +357,7 @@ const App: React.FC = () => {
         onLogoutClick={handleStartLogout}
         appState={appState}
         onChatClick={() => handleShowChat()}
+        onFeedbackClick={() => setIsFeedbackModalOpen(true)}
         notifications={notifications}
         unreadCount={unreadNotificationCount}
         onMarkNotificationsRead={markAllNotificationsAsRead}
@@ -328,11 +366,38 @@ const App: React.FC = () => {
         {error && !isWelcomeState && <div className="error-banner">{error}</div>}
         {renderContent()}
       </main>
+      
+      {showDeliveryEmailForPackage && (
+          <DeliveryConfirmationEmail
+            details={showDeliveryEmailForPackage}
+            onClose={() => setShowDeliveryEmailForPackage(null)}
+            onViewEvidence={() => {
+                setShowDeliveryEmailForPackage(null);
+                // In a real app, you might deep-link to the vault. Here, we just close.
+            }}
+            onLeaveFeedback={() => {
+                setShowDeliveryEmailForPackage(null);
+                setIsFeedbackModalOpen(true);
+            }}
+          />
+      )}
+      
+      {showCustomsHoldEmailForPackage && (
+        <CustomsHoldEmail
+            details={showCustomsHoldEmailForPackage}
+            onClose={() => setShowCustomsHoldEmailForPackage(null)}
+            onContactSupport={() => {
+                setShowCustomsHoldEmailForPackage(null);
+                handleShowChat(`I have a question about my shipment ${showCustomsHoldEmailForPackage.id} which is being held by customs.`);
+            }}
+        />
+      )}
 
       <ChatAssistant 
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
         initialPrompt={chatInitialPrompt}
+        packageDetails={packageDetails}
       />
       <LogoutWarning
         isVisible={isLogoutWarningVisible}
@@ -344,7 +409,27 @@ const App: React.FC = () => {
         onConfirm={handleConfirmLogout}
         onCancel={() => setIsLogoutConfirmOpen(false)}
       />
+       <FeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        onSubmit={handleSubmitFeedback}
+      />
+      {/* The StreetViewModal is managed within TrackingDisplay, so no state is needed here */}
       {showHeader && <VoiceCommandButton onCommand={handleVoiceCommand} appState={appState === 'tracking' ? 'tracking' : 'welcome'} />}
+      {showHeader && (
+        <BottomNav 
+          currentView={appState === 'create_shipment' ? 'create' : appState === 'tracking' ? 'tracking' : 'home'}
+          onNavigate={(view) => {
+            if (view === 'home') resetToHome();
+            if (view === 'create') handleGoToCreateShipment();
+            if (view === 'tracking') {
+              if (trackingId) handleTrack(trackingId);
+              else handleTrack('IT123456789');
+            }
+          }}
+          onShowChat={() => handleShowChat()}
+        />
+      )}
       {showHeader && <Footer />}
     </div>
   );
