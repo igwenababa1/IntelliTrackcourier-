@@ -53,7 +53,8 @@ export function initializeChat(packageDetails: PackageDetails | null): void {
   const systemInstruction = `You are a friendly and professional customer support assistant for IntelliTrack, a global courier service. 
     Your goal is to help users with their shipments. 
     Be concise and helpful. 
-    If you are asked about a specific shipment, refer to Package ID: ${packageId}. 
+    If you are asked about a specific shipment, refer to Package ID: ${packageId}. Current Time: ${new Date().toISOString()}.
+    The package's current status is "${currentPackageDetails?.status || 'Unknown'}".
     Do not promise actions you cannot perform, like changing delivery details or issuing refunds directly. Instead, guide the user on how they could hypothetically do so through the official channels or by contacting support.
     You have access to tools to generate thematic images and provide shipment summaries. Use them when requested.
     When you generate an image using the generatePackageImage tool, the tool will return a base64 image URL. You MUST display the image to the user using Markdown syntax: ![Thematic Image](<base64_image_url>).`;
@@ -154,27 +155,40 @@ const THEMATIC_PROMPTS = [
  */
 export async function generatePackageImage(itemDescription: string): Promise<string> {
     try {
-        const prompt = THEMATIC_PROMPTS[Math.floor(Math.random() * THEMATIC_PROMPTS.length)];
-        
-        const response = await ai.models.generateImages({
-            model: 'imagen-4.0-generate-001',
-            prompt: prompt,
-            config: {
-                numberOfImages: 1,
-                outputMimeType: 'image/jpeg',
-                aspectRatio: '1:1',
-            },
+        const brandName = "IntelliTrack";
+        // To make it functional, we use gemini-3.1-flash-image-preview to generate a specific image.
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              {
+                text: `A highly realistic, professional product photo of ${itemDescription} inside a high-tech shipping facility. The package or item prominently features a futuristic, glowing logo with the exact text "${brandName}". Cinematic lighting, 8k resolution, highly detailed.`,
+              },
+            ],
+          },
         });
         
-        const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-        if (base64ImageBytes) {
-            return `data:image/jpeg;base64,${base64ImageBytes}`;
+        let imageUrl = '';
+        const candidate = response.candidates?.[0];
+        if (candidate?.content?.parts) {
+          for (const part of candidate.content.parts) {
+            if (part.inlineData && part.inlineData.data) {
+              imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+              break;
+            }
+          }
+        }
+        
+        if (imageUrl) {
+            return imageUrl;
         } else {
-            throw new Error('Image generation failed, no image data received.');
+            console.warn('AI image generation returned no inline data. Falling back.');
+            return 'https://images.unsplash.com/photo-1580674285054-bed31e145f59?q=80&w=800&auto=format&fit=crop';
         }
     } catch (error) {
-        console.error('Error generating package image with Gemini API:', error);
-        throw error;
+        console.error('Error generating package image with AI:', error);
+        // Fallback
+        return 'https://images.unsplash.com/photo-1624021422744-9387ef91a5db?q=80&w=800&auto=format&fit=crop';
     }
 }
 

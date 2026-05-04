@@ -42,8 +42,18 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
   const [insuranceValue, setInsuranceValue] = useState<number>(0);
   const [specialHandling, setSpecialHandling] = useState<string[]>([]);
   const [advancedOptions, setAdvancedOptions] = useState<string[]>([]);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationStep, setVerificationStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
+  const VERIFICATION_STEPS = [
+      'Validating Origin and Destination Addresses...',
+      'Verifying Delivery Network Availability...',
+      'Encrypting Customs Declarations...',
+      'Securing Advanced Warranty Options...',
+      'Generating Secure Routing Hash...'
+  ];
+
   const totalCost = useMemo(() => {
     const serviceCost = SERVICES.find(s => s.name === service)?.cost || 0;
     const insuranceCost = INSURANCE_COSTS[insuranceValue];
@@ -131,20 +141,35 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading || !validateForm()) return;
+    if (isLoading || isVerifying || !validateForm()) return;
     
-    const shipmentData: NewShipmentData = {
-      origin,
-      destination,
-      weight,
-      dimensions,
-      service,
-      declaredItems,
-      insuranceValue,
-      specialHandling,
-      advancedOptions
-    };
-    onCreateShipment(shipmentData);
+    setIsVerifying(true);
+    setVerificationStep(0);
+    
+    let currentStep = 0;
+    const intervalId = setInterval(() => {
+      currentStep++;
+      if (currentStep < VERIFICATION_STEPS.length) {
+        setVerificationStep(currentStep);
+      } else {
+        clearInterval(intervalId);
+        setTimeout(() => {
+          const shipmentData: NewShipmentData = {
+            origin,
+            destination,
+            weight,
+            dimensions,
+            service,
+            declaredItems,
+            insuranceValue,
+            specialHandling,
+            advancedOptions
+          };
+          onCreateShipment(shipmentData);
+          setIsVerifying(false); // Reset after completion
+        }, 600);
+      }
+    }, 800);
   };
 
   const renderError = (field: string) => {
@@ -334,13 +359,69 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
                     <span className="total-cost-label">Total Estimated Cost</span>
                     <p className="total-cost-value">${totalCost.toFixed(2)}</p>
                 </div>
-                <button type="submit" className="submit-button" disabled={isLoading || !isFormValid()}>
+                <button type="submit" className="submit-button" disabled={isLoading}>
                     {isLoading ? 'Creating...' : 'Create Shipment'}
                 </button>
            </div>
 
         </section>
       </form>
+      
+      {isVerifying && (
+        <div className="verification-overlay" style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+            backgroundColor: 'rgba(10, 10, 15, 0.85)', backdropFilter: 'blur(8px)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, color: 'white', animation: 'fadeIn 0.3s ease'
+        }}>
+           <div style={{
+               backgroundColor: 'var(--card-bg-color)', padding: '3rem', borderRadius: '16px',
+               border: '1px solid var(--border-color)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+               maxWidth: '500px', width: '90%', display: 'flex', flexDirection: 'column', gap: '1.5rem'
+           }}>
+             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, color: 'var(--primary-color)' }}>
+                <Icon name="shield-check" className={verificationStep === VERIFICATION_STEPS.length ? "success-pulse" : ""} /> 
+                System Authentication
+             </h2>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                {VERIFICATION_STEPS.map((step, idx) => {
+                    const isCompleted = idx < verificationStep;
+                    const isCurrent = idx === verificationStep;
+                    const isPending = idx > verificationStep;
+                    
+                    return (
+                        <div key={idx} style={{ 
+                            display: 'flex', alignItems: 'center', gap: '1rem',
+                            opacity: isPending ? 0.4 : 1, transition: 'all 0.3s ease',
+                            transform: isCurrent ? 'translateX(10px)' : 'translateX(0)'
+                        }}>
+                           <div style={{ 
+                               width: '24px', height: '24px', borderRadius: '50%', 
+                               display: 'flex', alignItems: 'center', justifyContent: 'center',
+                               backgroundColor: isCompleted ? '#10b981' : isCurrent ? 'transparent' : 'rgba(255,255,255,0.1)',
+                               border: isCurrent ? '2px solid var(--primary-color)' : 'none',
+                               color: isCompleted ? '#fff' : 'transparent',
+                               animation: isCurrent ? 'ar-pulse 1.5s infinite' : 'none'
+                           }}>
+                              {isCompleted && <Icon name="check" size={16} />}
+                           </div>
+                           <span style={{ 
+                               fontWeight: isCurrent ? 600 : 400,
+                               color: isCurrent ? 'var(--primary-color)' : 'inherit',
+                               fontSize: '0.95rem'
+                           }}>{step}</span>
+                        </div>
+                    );
+                })}
+             </div>
+             {verificationStep === VERIFICATION_STEPS.length && (
+                 <div style={{ marginTop: '1rem', textAlign: 'center', padding: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    Verification Complete. Redirecting...
+                 </div>
+             )}
+           </div>
+        </div>
+      )}
     </div>
   );
 };

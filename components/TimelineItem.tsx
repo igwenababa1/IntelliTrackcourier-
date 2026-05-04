@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TrackingEvent } from '../types';
 import Icon, { IconName } from './Icon';
 import DeliveryConfirmation from './DeliveryConfirmation';
@@ -89,6 +89,8 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast, icon, onViewStreet, onAddEvidence, hasEvidence }) => {
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+
   const activeStyles: { [key: string]: React.CSSProperties } = isLast ? {
     iconContainer: {
       ...styles.iconContainer,
@@ -127,6 +129,13 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast, icon, onView
     e.currentTarget.style.backgroundColor = isHovering ? 'rgba(255, 255, 255, 0.1)' : 'transparent';
   };
 
+  const handleConfirmAction = (type: 'photo' | 'audio' | 'signature', data: string) => {
+    if (onAddEvidence) {
+      onAddEvidence(type, data);
+    }
+    setShowConfirmationModal(false);
+  };
+
   return (
     <div style={styles.item}>
       {!isLast && <div style={styles.line}></div>}
@@ -157,12 +166,57 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast, icon, onView
         )}
         <p style={isLast ? activeStyles.date : styles.date}>{event.date}</p>
         
-        {isLast && onAddEvidence && !hasEvidence && (event.status.toLowerCase().includes('out for delivery') || event.status.toLowerCase().includes('delivered')) && (
-          <div style={{ marginTop: '1rem', maxWidth: '300px' }}>
-            <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-color)' }}>Confirm Delivery</h5>
-            <DeliveryConfirmation onConfirm={onAddEvidence} />
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(79, 70, 229, 0.15)', color: '#a5b4fc', borderRadius: '4px', border: '1px solid rgba(79, 70, 229, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>SCN-{Math.abs(event.status.length * 4821 + event.location.length * 133).toString(16).toUpperCase()}</span>
+          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>TRM-{Math.abs(event.status.length * 5678).toString(16).toUpperCase()}-{(event.location.length * 28) % 99}</span>
+          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#fcd34d', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>GEO-{Math.abs((event.status.length+event.location.length)*42).toString().padStart(4, '0')}</span>
+          {event.status.toLowerCase().includes('clear') && (
+             <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(217, 70, 239, 0.15)', color: '#f0abfc', borderRadius: '4px', border: '1px solid rgba(217, 70, 239, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>CLR-DDP</span>
+          )}
+        </div>
+        
+        {isLast && onAddEvidence && !hasEvidence && event.status.toLowerCase().includes('out for delivery') && (
+          <div style={{ marginTop: '1rem' }}>
+            <button
+              onClick={() => setShowConfirmationModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: 'var(--primary-color)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-hover-color)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-color)'}
+            >
+              <Icon name="check-circle" style={{ width: '16px', height: '16px' }} />
+              Confirm Delivery
+            </button>
           </div>
         )}
+
+        {showConfirmationModal && (
+          <div className="confirmation-modal-overlay">
+            <div className="confirmation-modal-content" style={{ maxWidth: '400px' }}>
+              <button 
+                className="confirmation-modal-close-button" 
+                onClick={() => setShowConfirmationModal(false)}
+              >
+                <Icon name="close" />
+              </button>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'white', marginBottom: '1rem' }}>Confirm Delivery</h2>
+              <p style={{ color: 'var(--text-secondary-color)', marginBottom: '1.5rem' }}>Select a method to confirm your delivery.</p>
+              <DeliveryConfirmation onConfirm={handleConfirmAction} />
+            </div>
+          </div>
+        )}
+
         {isLast && hasEvidence && (
           <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--card-bg-color)', borderRadius: '0.5rem', border: '1px solid var(--border-color)', maxWidth: '300px' }}>
             <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

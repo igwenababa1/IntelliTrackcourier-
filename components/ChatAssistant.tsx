@@ -210,10 +210,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, initialP
         setMessages([{ text: initialPrompt, sender: 'assistant' }]);
       }
       setMode('text'); // Reset to text mode on open
+      // Re-initialize whenever opened or package details change
+      import('../services/geminiService').then(({ initializeChat }) => {
+        initializeChat(packageDetails || null);
+      });
     } else {
         stopLiveSession(); // Ensure cleanup on close
     }
-  }, [isOpen, initialPrompt]);
+  }, [isOpen, initialPrompt, packageDetails]);
 
   useEffect(() => {
     if (messageListRef.current) {
@@ -322,7 +326,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, initialP
                   speechConfig: {
                       voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
                   },
-                  systemInstruction: `You are a helpful, professional, and friendly customer support agent for IntelliTrack, a global courier service. Your goal is to assist users with tracking shipments, explaining services, and resolving issues efficiently. Be concise in your spoken responses.${packageDetails ? `\n\nContext: The user is currently viewing a package with ID ${packageDetails.id}. Its current status is "${packageDetails.status}". Estimated delivery: ${packageDetails.estimatedDelivery}. Origin: ${packageDetails.origin.cityStateZip}, ${packageDetails.origin.country}. Destination: ${packageDetails.destination.cityStateZip}, ${packageDetails.destination.country}.` : ''}`
+                  systemInstruction: `You are a helpful, professional, and friendly customer support agent for IntelliTrack, a global courier service. Your goal is to assist users with tracking shipments, explaining services, and resolving issues efficiently. Be concise in your spoken responses.${packageDetails ? `\n\nContext: The user is currently viewing a package with ID ${packageDetails.id}. Its current status is "${packageDetails.status}". Estimated delivery: ${packageDetails.estimatedDelivery}. Origin: ${packageDetails.origin.cityStateZip}, ${packageDetails.origin.country}. Destination: ${packageDetails.destination.cityStateZip}, ${packageDetails.destination.country}. Current Time: ${new Date().toISOString()}` : ''}`
               }
           });
           
@@ -414,6 +418,13 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, initialP
         
         {mode === 'text' ? (
             <>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0 1.5rem', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>RT-SYNC-{(packageDetails?.id || '').substring(0,6).toUpperCase()}</span>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(79, 70, 229, 0.15)', color: '#a5b4fc', borderRadius: '4px', border: '1px solid rgba(79, 70, 229, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>AI-{Date.now().toString().slice(-4)}</span>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#fcd34d', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)', fontFamily: 'monospace', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ width: 4, height: 4, backgroundColor: '#fcd34d', borderRadius: '50%', animation: 'pulse-ring 1s infinite' }}></span> LIVE TELEMETRY
+                    </span>
+                </div>
                 <div ref={messageListRef} className="chat-message-list">
                 {messages.map((msg, index) => (
                     <div key={index} className={`chat-bubble ${msg.sender}`}>
@@ -423,10 +434,11 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, initialP
                     </div>
                 ))}
                 {isLoading && (
-                    <div className="chat-bubble assistant">
-                    <div className="typing-indicator">
-                        <span></span><span></span><span></span>
-                    </div>
+                    <div className="chat-bubble assistant" style={{ background: 'transparent', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--primary-color)' }}>
+                            <Icon name="activity" className="pulse-icon" style={{ width: 16, height: 16, animation: 'pulse-ring 1.5s infinite' }} />
+                            <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '1px' }}>Syncing Global Telemetry...</span>
+                        </div>
                     </div>
                 )}
                 </div>
@@ -498,6 +510,10 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ isOpen, onClose, initialP
                      >
                          <Icon name="stop-circle" style={{width: 28, height: 28}} />
                      </button>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '2rem', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>V-NODE-ACTV</span>
+                    <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>BNDWDTH: HIGH</span>
                 </div>
             </div>
         )}

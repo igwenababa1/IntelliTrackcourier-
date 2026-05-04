@@ -60,12 +60,8 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
         const cacheKey = `package-image-${packageDetails.id}`;
         const cachedImage = sessionStorage.getItem(cacheKey);
         
-        if (cachedImage) {
-            if (cachedImage === 'FAILED') {
-                setPackageImage(null);
-            } else {
-                setPackageImage(cachedImage);
-            }
+        if (cachedImage && cachedImage !== 'FAILED') {
+            setPackageImage(cachedImage);
             setIsImageLoading(false);
             return;
         }
@@ -79,7 +75,7 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
         } catch (error) {
             console.error("Failed to generate package image:", error);
             setPackageImage(null);
-            sessionStorage.setItem(cacheKey, 'FAILED'); // Cache failure
+            sessionStorage.removeItem(cacheKey); // Clear failure if it was there
         } finally {
             setIsImageLoading(false);
         }
@@ -140,9 +136,16 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
   const daysRemainingText = calculateDaysRemaining(packageDetails.estimatedDelivery);
   const journeyPath = getJourneyPath(packageDetails.history);
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const handleDeliveryConfirm = (type: 'photo' | 'audio' | 'signature', data: string) => {
     onAddEvidence(type, data);
     onShowChat(`I've just provided a ${type} confirmation for the delivery of package ${packageDetails.id}. Please add this to the record.`);
+    
+    setToastMessage('Delivery confirmation recorded. View in Delivery Vault.');
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
   };
 
   const renderActiveView = () => {
@@ -156,18 +159,37 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
       case 'journey':
       default:
         return (
-          <div className="timeline-container">
-            {packageDetails.history.map((event: TrackingEvent, index: number) => (
-              <TimelineItem
-                key={index}
-                event={event}
-                isLast={index === 0}
-                icon={getIconForStatus(event.status)}
-                onViewStreet={handleViewStreet}
-                onAddEvidence={handleDeliveryConfirm}
-                hasEvidence={!!packageDetails.deliveryEvidence && (!!packageDetails.deliveryEvidence.photo || !!packageDetails.deliveryEvidence.signature || !!packageDetails.deliveryEvidence.audio)}
-              />
-            ))}
+          <div className="journey-view-wrapper">
+             <div className="journey-telemetry" style={{ display: 'flex', gap: '1rem', padding: '1rem', marginBottom: '1.5rem', backgroundColor: 'var(--card-bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', flexWrap: 'wrap', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ flex: '1 1 30%', minWidth: '120px' }}>
+                    <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Global Route Hash</p>
+                    <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>RT-{packageDetails.id.substring(0,8)}-{new Date().getUTCFullYear()}</p>
+                </div>
+                <div style={{ flex: '1 1 30%', minWidth: '120px' }}>
+                    <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Active Nodes Count</p>
+                    <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-color)' }}>{packageDetails.history.length} SCANS VERIFIED</p>
+                </div>
+                <div style={{ flex: '1 1 30%', minWidth: '120px' }}>
+                    <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Logistics Network</p>
+                    <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', boxShadow: '0 0 8px #10b981', animation: 'ar-pulse 2s infinite' }}></span>
+                        {packageDetails.status.toLowerCase() === 'delivered' ? 'ARCHIVED LOG' : 'LIVE SYNC'}
+                    </p>
+                </div>
+             </div>
+             <div className="timeline-container">
+              {packageDetails.history.map((event: TrackingEvent, index: number) => (
+                <TimelineItem
+                  key={index}
+                  event={event}
+                  isLast={index === 0}
+                  icon={getIconForStatus(event.status)}
+                  onViewStreet={handleViewStreet}
+                  onAddEvidence={handleDeliveryConfirm}
+                  hasEvidence={!!packageDetails.deliveryEvidence && (!!packageDetails.deliveryEvidence.photo || !!packageDetails.deliveryEvidence.signature || !!packageDetails.deliveryEvidence.audio)}
+                />
+              ))}
+            </div>
           </div>
         );
     }
@@ -352,6 +374,28 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
               imageUrl: findImageUrlForLocation(streetViewLocation)
             }}
         />
+     )}
+     {toastMessage && (
+      <div style={{
+        position: 'fixed',
+        bottom: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: 'var(--primary-color)',
+        color: 'white',
+        padding: '1rem 1.5rem',
+        borderRadius: '50px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+        zIndex: 1000,
+        fontWeight: 500,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        animation: 'fadeIn 0.3s ease-out'
+      }}>
+        <Icon name="check-circle" />
+        {toastMessage}
+      </div>
      )}
     </>
   );
