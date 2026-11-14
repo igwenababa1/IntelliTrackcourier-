@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { NewShipmentData, Address, ServiceOption, DeclaredItem, City } from '../types';
 import Icon, { IconName } from './Icon';
 import AddressAutocomplete from './AddressAutocomplete';
@@ -31,6 +31,8 @@ const ADVANCED_OPTION_COSTS: Record<string, number> = {
 };
 
 const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoading }) => {
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingError, setTrackingError] = useState<string | null>(null);
   const [origin, setOrigin] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '', email: '' });
   const [destination, setDestination] = useState<Address>({ name: '', street: '', cityStateZip: '', country: '', email: '' });
   const [weight, setWeight] = useState('');
@@ -53,6 +55,20 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
       'Securing Advanced Warranty Options...',
       'Generating Secure Routing Hash...'
   ];
+
+  useEffect(() => {
+    if (trackingNumber.trim().length > 0) {
+      // Real-time validation for custom tracking number
+      const trackingRegex = /^ITK-[A-Z0-9]{4}-[A-Z0-9]{3}-[A-Z0-9]{4}$/i;
+      if (!trackingRegex.test(trackingNumber.trim())) {
+        setTrackingError("Invalid format. Expected: ITK-XXXX-XXX-XXXX");
+      } else {
+        setTrackingError(null);
+      }
+    } else {
+      setTrackingError(null);
+    }
+  }, [trackingNumber]);
 
   const totalCost = useMemo(() => {
     const serviceCost = SERVICES.find(s => s.name === service)?.cost || 0;
@@ -125,6 +141,13 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
     
     const newErrors = { ...originErrors, ...destErrors };
     
+    if (trackingNumber.trim()) {
+      const trackingRegex = /^ITK-[A-Z0-9]{4}-[A-Z0-9]{3}-[A-Z0-9]{4}$/i;
+      if (!trackingRegex.test(trackingNumber.trim())) {
+        newErrors.trackingNumber = 'Invalid format. Expected: ITK-XXXX-XXX-XXXX';
+      }
+    }
+
     if (!weight) newErrors.weight = 'Weight is required';
     if (!dimensions) newErrors.dimensions = 'Dimensions are required';
     
@@ -155,6 +178,7 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
         clearInterval(intervalId);
         setTimeout(() => {
           const shipmentData: NewShipmentData = {
+            trackingNumber,
             origin,
             destination,
             weight,
@@ -199,11 +223,13 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
                   <input type="email" value={origin.email} onChange={e => handleAddressChange('origin', 'email', e.target.value)} required />
                   {renderError('originEmail')}
                 </div>
-                <div className="form-field">
-                  <label>Street Address</label>
-                  <input type="text" value={origin.street} onChange={e => handleAddressChange('origin', 'street', e.target.value)} required />
-                  {renderError('originStreet')}
-                </div>
+                <AddressAutocomplete
+                  label="Street Address"
+                  value={origin.street}
+                  onChange={e => handleAddressChange('origin', 'street', e.target.value)}
+                  error={errors.originStreet}
+                  placeholder="e.g., 123 Main St"
+                />
                 <AddressAutocomplete
                     label="City"
                     value={origin.cityStateZip}
@@ -233,11 +259,13 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
                    <input type="email" value={destination.email} onChange={e => handleAddressChange('destination', 'email', e.target.value)} placeholder="For verification & notifications" required />
                    {renderError('destinationEmail')}
                  </div>
-                <div className="form-field">
-                  <label>Street Address</label>
-                  <input type="text" value={destination.street} onChange={e => handleAddressChange('destination', 'street', e.target.value)} required />
-                  {renderError('destinationStreet')}
-                </div>
+                <AddressAutocomplete
+                  label="Street Address"
+                  value={destination.street}
+                  onChange={e => handleAddressChange('destination', 'street', e.target.value)}
+                  error={errors.destinationStreet}
+                  placeholder="e.g., 10 Downing St"
+                />
                  <AddressAutocomplete
                     label="City"
                     value={destination.cityStateZip}
@@ -260,8 +288,46 @@ const CreateShipment: React.FC<CreateShipmentProps> = ({ onCreateShipment, isLoa
         <section className="form-section">
           <h2 className="form-section-title">Package Details</h2>
           <div className="form-grid">
+            <div className="form-field">
+              <label>Custom Tracking Number (Optional)</label>
+              <input 
+                type="text" 
+                value={trackingNumber} 
+                onChange={e => setTrackingNumber(e.target.value)} 
+                placeholder="e.g., ITK-1234-ABC-5678" 
+              />
+              {trackingError && <span className="warning-text" style={{ color: '#f59e0b', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{trackingError}</span>}
+              {!trackingError && renderError('trackingNumber')}
+            </div>
             <div className="form-field"><label>Total Weight (kg)</label><input type="text" value={weight} onChange={e => setWeight(e.target.value)} placeholder="e.g., 2.5 kg" required /></div>
             <div className="form-field"><label>Dimensions (cm)</label><input type="text" value={dimensions} onChange={e => setDimensions(e.target.value)} placeholder="e.g., 30x20x15 cm" required /></div>
+          </div>
+        </section>
+
+        {/* Shipping Manifest Section */}
+        <section className="form-section">
+          <h2 className="form-section-title">
+            <Icon name="file-text" className="title-icon" />
+            <span>Shipping Manifest</span>
+          </h2>
+          <p className="form-section-subtitle" style={{ color: 'var(--text-secondary-color)', fontSize: '0.9rem', marginBottom: '1.5rem', marginTop: '-1rem' }}>
+            Upload a manifest file (e.g., CSV or Excel) to automatically populate shipment data or attach to the shipment record.
+          </p>
+          <div className="form-field">
+            <label>Manifest File</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+               <input 
+                 type="file" 
+                 accept=".csv, .xlsx, .xls"
+                 onChange={(e) => {
+                     const file = e.target.files?.[0];
+                     if (file) {
+                         alert(`Manifest file "${file.name}" uploaded successfully.`);
+                     }
+                 }}
+                 style={{ backgroundColor: 'transparent', border: '1px dashed var(--border-color)', padding: '1rem', width: '100%', borderRadius: '0.5rem', cursor: 'pointer', color: 'var(--text-secondary-color)' }}
+               />
+            </div>
           </div>
         </section>
 

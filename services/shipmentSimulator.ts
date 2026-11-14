@@ -48,9 +48,9 @@ export const simulateNextEvent = (packageDetails: PackageDetails): PackageDetail
   const lastEvent = packageDetails.history[0];
   const lastEventDate = new Date(lastEvent.date.replace(',', ''));
 
-  // Introduce variability in event timing
-  const randomHours = (Math.random() * 6) + 4; // 4 to 10 hours
-  const nextEventDate = new Date(lastEventDate.getTime() + randomHours * 3600 * 1000);
+  // Introduce real-time telemetry timing
+  const randomMinutes = (Math.random() * 5) + 1; // 1 to 6 minutes
+  const nextEventDate = new Date(lastEventDate.getTime() + randomMinutes * 60 * 1000);
   const formattedDate = `${nextEventDate.toISOString().slice(0, 10)}, ${nextEventDate.toTimeString().slice(0, 5)}`;
 
   let newEvent: TrackingEvent;

@@ -44,7 +44,7 @@ const TrackingInput: React.FC<TrackingInputProps> = ({ onTrack, onScan, isLoadin
         className="tracking-input"
         value={trackingId}
         onChange={(e) => setTrackingId(e.target.value)}
-        placeholder="Enter Tracking ID (e.g., IT123456789)"
+        placeholder="Enter Tracking ID (e.g., ITK-9X81-GBL-774A)"
         disabled={isLoading}
         aria-label="Tracking ID Input"
       />

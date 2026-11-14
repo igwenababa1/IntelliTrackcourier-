@@ -5,7 +5,7 @@ import { City } from '../types';
 interface AddressAutocompleteProps {
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onSelect: (city: City) => void;
+  onSelect?: (city: City) => void;
   label: string;
   placeholder?: string;
   error?: string;
@@ -22,16 +22,33 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const [suggestions, setSuggestions] = useState<City[]>([]);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [internalError, setInternalError] = useState<string | null>(null);
+
+  const isStreet = label.toLowerCase().includes('street');
 
   const filteredCities = useMemo(() => {
-    if (!value) return [];
+    if (!value || isStreet) return [];
     const lowercasedValue = value.toLowerCase();
     return CITIES.filter(
       city =>
         city.name.toLowerCase().includes(lowercasedValue) ||
         city.country.toLowerCase().includes(lowercasedValue)
     ).slice(0, 5); // Limit to top 5 suggestions
-  }, [value]);
+  }, [value, isStreet]);
+
+  useEffect(() => {
+    if (isStreet && value.length > 0) {
+      // Real-time validation for street address
+      const streetRegex = /^\d+\s+[a-zA-Z0-9\s.-]+\s+(st|street|ave|avenue|rd|road|blvd|boulevard|ln|lane|dr|drive|ct|court|pl|place|apt|apartment|suite|way|terrace|pkwy|parkway|aly|alley|cir|circle|cove|cv|hwy|highway|sq|square|trl|trail)\b.*$/i;
+      if (!streetRegex.test(value.trim())) {
+        setInternalError("Please enter a valid format: Number, Name, Type (e.g., '123 Main St')");
+      } else {
+        setInternalError(null);
+      }
+    } else {
+      setInternalError(null);
+    }
+  }, [value, isStreet]);
 
   useEffect(() => {
     if (value.length > 0 && filteredCities.length > 0) {
@@ -56,7 +73,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   }, []);
 
   const handleSelect = (city: City) => {
-    onSelect(city);
+    if (onSelect) onSelect(city);
     setIsDropdownVisible(false);
   };
 
@@ -77,6 +94,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         }}
       />
       {error && <span className="error-text" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{error}</span>}
+      {internalError && !error && <span className="warning-text" style={{ color: '#f59e0b', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>{internalError}</span>}
       {isDropdownVisible && suggestions.length > 0 && (
         <ul className="autocomplete-dropdown">
           {suggestions.map(city => (

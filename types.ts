@@ -73,6 +73,7 @@ export interface PackageDetails {
 export type ServiceOption = 'Standard' | 'Express' | 'Overnight' | 'Same-Day' | 'Weekend';
 
 export interface NewShipmentData {
+  trackingNumber?: string;
   origin: Address;
   destination: Address;
   service: ServiceOption;

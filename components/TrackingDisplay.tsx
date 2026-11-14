@@ -137,6 +137,21 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
   const journeyPath = getJourneyPath(packageDetails.history);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [liveTelemetry, setLiveTelemetry] = useState<{lat: number, lng: number, speed: number, alt: number}>({lat: 0, lng: 0, speed: 0, alt: 0});
+
+  useEffect(() => {
+    if (packageDetails.status.toLowerCase() !== 'delivered') {
+      const interval = setInterval(() => {
+        setLiveTelemetry({
+          lat: parseFloat((Math.random() * 180 - 90).toFixed(6)),
+          lng: parseFloat((Math.random() * 360 - 180).toFixed(6)),
+          speed: Math.floor(Math.random() * 300) + 50,
+          alt: Math.floor(Math.random() * 10000) + 500,
+        });
+      }, 3500); // 3.5 seconds
+      return () => clearInterval(interval);
+    }
+  }, [packageDetails.status]);
 
   const handleDeliveryConfirm = (type: 'photo' | 'audio' | 'signature', data: string) => {
     onAddEvidence(type, data);
@@ -160,16 +175,28 @@ const TrackingDisplay: React.FC<TrackingDisplayProps> = ({ packageDetails, onNew
       default:
         return (
           <div className="journey-view-wrapper">
-             <div className="journey-telemetry" style={{ display: 'flex', gap: '1rem', padding: '1rem', marginBottom: '1.5rem', backgroundColor: 'var(--card-bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', flexWrap: 'wrap', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ flex: '1 1 30%', minWidth: '120px' }}>
+             <div className="journey-telemetry" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', padding: '1rem', marginBottom: '1.5rem', backgroundColor: 'var(--card-bg-color)', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div>
                     <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Global Route Hash</p>
-                    <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>RT-{packageDetails.id.substring(0,8)}-{new Date().getUTCFullYear()}</p>
+                    <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-color)' }}>RT-{packageDetails.id.substring(4,10)}-{new Date().getUTCFullYear()}</p>
                 </div>
-                <div style={{ flex: '1 1 30%', minWidth: '120px' }}>
+                <div>
                     <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Active Nodes Count</p>
                     <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-color)' }}>{packageDetails.history.length} SCANS VERIFIED</p>
                 </div>
-                <div style={{ flex: '1 1 30%', minWidth: '120px' }}>
+                {packageDetails.status.toLowerCase() !== 'delivered' && liveTelemetry.lat !== 0 && (
+                <>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>GPS Coords (Live)</p>
+                    <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: '#3b82f6' }}>{liveTelemetry.lat}, {liveTelemetry.lng}</p>
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Current Speed/Alt</p>
+                    <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: '#f59e0b' }}>{liveTelemetry.speed} km/h • {liveTelemetry.alt} m</p>
+                  </div>
+                </>
+                )}
+                <div>
                     <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-secondary-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>Logistics Network</p>
                     <p style={{ margin: '4px 0 0 0', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600, color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', boxShadow: '0 0 8px #10b981', animation: 'ar-pulse 2s infinite' }}></span>

@@ -24,10 +24,11 @@ import EmailVerification from './components/EmailVerification';
 import Footer from './components/Footer';
 import GeneratingReportScreen from './components/GeneratingReportScreen';
 import FeedbackModal from './components/FeedbackModal';
+import UserProfile from './components/UserProfile';
 import { DeliveryConfirmationEmail, CustomsHoldEmail } from './components/EmailNotifications';
 import BottomNav from './components/BottomNav';
 
-type AppState = 'landing' | 'intro_animation' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'logging_out';
+type AppState = 'landing' | 'intro_animation' | 'welcome' | 'generating_report' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'logging_out' | 'profile';
 
 const LOGOUT_COUNTDOWN_SECONDS = 5;
 
@@ -94,7 +95,7 @@ const App: React.FC = () => {
 
   const addNotification = (title: string, message: string) => {
     const newNotification: Notification = {
-        id: Date.now(),
+        id: Date.now() + Math.random(),
         title,
         message,
         timestamp: new Date(),
@@ -178,7 +179,7 @@ const App: React.FC = () => {
           }
           return null;
         });
-      }, 7000); // Update every 7 seconds
+      }, 4000); // Faster update for demo purposes
     }
     return () => clearInterval(interval);
   }, [appState, packageDetails, lastNotifiedStatus]);
@@ -194,6 +195,11 @@ const App: React.FC = () => {
   const handleGoToCreateShipment = () => {
     setError(null);
     setAppState('create_shipment');
+  };
+
+  const handleGoToProfile = () => {
+    setError(null);
+    setAppState('profile');
   };
 
   const handleCreateShipment = async (data: NewShipmentData) => {
@@ -317,6 +323,8 @@ const App: React.FC = () => {
         return <CreateShipment onCreateShipment={handleCreateShipment} isLoading={isLoading} />;
       case 'email_verification':
         return <EmailVerification onVerify={handleVerificationSuccess} userEmail={packageDetails?.destination.email || 'your email'}/>
+      case 'profile':
+        return <UserProfile userEmail="info@lawrenceconsultantsorg.org" />
       case 'logging_out':
         return <LogoutScreen onComplete={resetToHome} />;
       case 'error':
@@ -352,12 +360,13 @@ const App: React.FC = () => {
        {showHeader && <Header 
         onHomeClick={resetToHome}
         onNewShipmentClick={handleGoToCreateShipment}
-        onTrackClick={() => appState === 'tracking' || appState === 'generating_report' ? {} : handleTrack(trackingId || 'IT123456789')}
+        onTrackClick={() => appState === 'tracking' || appState === 'generating_report' ? {} : handleTrack(trackingId || 'ITK-9X81-GBL-774A')}
         supportEmail="support@intellitrack.dev"
         onLogoutClick={handleStartLogout}
         appState={appState}
         onChatClick={() => handleShowChat()}
         onFeedbackClick={() => setIsFeedbackModalOpen(true)}
+        onProfileClick={handleGoToProfile}
         notifications={notifications}
         unreadCount={unreadNotificationCount}
         onMarkNotificationsRead={markAllNotificationsAsRead}
@@ -424,7 +433,7 @@ const App: React.FC = () => {
             if (view === 'create') handleGoToCreateShipment();
             if (view === 'tracking') {
               if (trackingId) handleTrack(trackingId);
-              else handleTrack('IT123456789');
+              else handleTrack('ITK-9X81-GBL-774A');
             }
           }}
           onShowChat={() => handleShowChat()}

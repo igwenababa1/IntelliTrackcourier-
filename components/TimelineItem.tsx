@@ -136,14 +136,56 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast, icon, onView
     setShowConfirmationModal(false);
   };
 
+  const statusIconInfo = (() => {
+    const s = event.status.toLowerCase();
+    if (s.includes('delivered')) return { name: 'check-circle' as IconName, color: '#10b981', animation: 'status-pop 0.5s ease-out forwards' };
+    if (s.includes('out for delivery')) return { name: 'truck' as IconName, color: '#f59e0b', animation: 'status-bounce 1s infinite alternate' };
+    if (s.includes('in transit')) return { name: 'globe' as IconName, color: '#3b82f6', animation: 'status-spin 3s linear infinite' };
+    if (s.includes('processing') || s.includes('received')) return { name: 'package' as IconName, color: '#8b5cf6', animation: 'status-pulse 2s infinite' };
+    return null;
+  })();
+
   return (
     <div style={styles.item}>
+      <style>{`
+        @keyframes status-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes status-bounce {
+          from { transform: translateX(0); }
+          to { transform: translateX(4px); }
+        }
+        @keyframes status-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes status-pop {
+          0% { transform: scale(0); opacity: 0; }
+          60% { transform: scale(1.2); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+      `}</style>
       {!isLast && <div style={styles.line}></div>}
       <div style={isLast ? activeStyles.iconContainer : styles.iconContainer}>
         <Icon name={icon} />
       </div>
       <div style={styles.content}>
-        <h4 style={isLast ? activeStyles.status : styles.status}>{event.status}</h4>
+        <h4 style={{ ...(isLast ? activeStyles.status : styles.status) as React.CSSProperties, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {event.status}
+          {statusIconInfo && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: statusIconInfo.color,
+              animation: statusIconInfo.animation,
+            }}>
+              <Icon name={statusIconInfo.name} style={{ width: 16, height: 16 }} />
+            </div>
+          )}
+        </h4>
         <div 
           style={styles.locationContainer} 
           onClick={handleLocationClick} 
@@ -167,6 +209,30 @@ const TimelineItem: React.FC<TimelineItemProps> = ({ event, isLast, icon, onView
         <p style={isLast ? activeStyles.date : styles.date}>{event.date}</p>
         
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+          <button 
+            type="button"
+            onClick={handleLocationClick}
+            style={{
+              padding: '2px 8px',
+              fontSize: '0.65rem',
+              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              borderRadius: '4px',
+              color: '#93c5fd',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontWeight: 600,
+              transition: 'background-color 0.2s',
+              fontFamily: 'var(--font-sans)',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.25)'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)'}
+          >
+            <Icon name="camera" style={{ width: 10, height: 10 }} />
+            VIEW LOCATION
+          </button>
           <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(79, 70, 229, 0.15)', color: '#a5b4fc', borderRadius: '4px', border: '1px solid rgba(79, 70, 229, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>SCN-{Math.abs(event.status.length * 4821 + event.location.length * 133).toString(16).toUpperCase()}</span>
           <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#6ee7b7', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>TRM-{Math.abs(event.status.length * 5678).toString(16).toUpperCase()}-{(event.location.length * 28) % 99}</span>
           <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#fcd34d', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)', fontFamily: 'monospace', fontWeight: 500 }}>GEO-{Math.abs((event.status.length+event.location.length)*42).toString().padStart(4, '0')}</span>

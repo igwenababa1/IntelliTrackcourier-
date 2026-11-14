@@ -9,9 +9,10 @@ interface HeaderProps {
   onTrackClick: () => void;
   supportEmail: string;
   onLogoutClick: () => void;
-  appState: 'welcome' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'generating_report';
+  appState: 'welcome' | 'tracking' | 'error' | 'create_shipment' | 'email_verification' | 'generating_report' | 'profile';
   onChatClick: () => void;
   onFeedbackClick: () => void;
+  onProfileClick: () => void;
   notifications: Notification[];
   unreadCount: number;
   onMarkNotificationsRead: () => void;
@@ -26,6 +27,7 @@ const Header: React.FC<HeaderProps> = ({
   appState, 
   onChatClick,
   onFeedbackClick,
+  onProfileClick,
   notifications,
   unreadCount,
   onMarkNotificationsRead
@@ -68,6 +70,7 @@ const Header: React.FC<HeaderProps> = ({
             </div>
             <div className="mobile-nav-secondary">
                 <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onChatClick); }} className="secondary-nav-link">AI Assistant</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onProfileClick); }} className="secondary-nav-link">Profile</a>
                 <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onFeedbackClick); }} className="secondary-nav-link">Feedback</a>
                 <a href={`mailto:${supportEmail}`} className="secondary-nav-link">Contact Support</a>
                 <a href="#" onClick={(e) => { e.preventDefault(); handleMobileLinkClick(onLogoutClick); }} className="secondary-nav-link">Log Out</a>
@@ -91,6 +94,7 @@ const Header: React.FC<HeaderProps> = ({
         <a href="#" onClick={(e) => handleLinkClick(e, onNewShipmentClick)} className={isCreateActive ? 'active' : ''}>New Shipment</a>
         <a href="#" onClick={(e) => handleLinkClick(e, onTrackClick)} className={isTrackingActive ? 'active' : ''}>Track</a>
         <a href="#" onClick={(e) => handleLinkClick(e, onChatClick)}>AI Assistant</a>
+        <a href="#" onClick={(e) => handleLinkClick(e, onProfileClick)} className={appState === 'profile' ? 'active' : ''}>Profile</a>
         <a href="#" onClick={(e) => handleLinkClick(e, onFeedbackClick)}>Feedback</a>
         <a href={`mailto:${supportEmail}`} title="Contact Customer Support">Contact</a>
         

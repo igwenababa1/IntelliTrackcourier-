@@ -7,8 +7,23 @@ interface AdvancedLogisticsPanelProps {
 }
 
 const AdvancedLogisticsPanel: React.FC<AdvancedLogisticsPanelProps> = ({ details }) => {
+  const calculateEta = () => {
+    const now = new Date();
+    const deliveryTime = new Date(now);
+    // Set a specific daily reset time (e.g., 20:00 / 8:00 PM)
+    deliveryTime.setHours(20, 0, 0, 0);
+
+    if (now.getTime() > deliveryTime.getTime()) {
+      // Reset for the next day's delivery window
+      deliveryTime.setDate(deliveryTime.getDate() + 1);
+    }
+
+    const diffMs = deliveryTime.getTime() - now.getTime();
+    return Math.floor(diffMs / 60000); // Convert to minutes
+  };
+
   const [pinCode, setPinCode] = useState<string>('');
-  const [etaMinutes, setEtaMinutes] = useState<number>(45);
+  const [etaMinutes, setEtaMinutes] = useState<number>(calculateEta());
   const [carbonOffset, setCarbonOffset] = useState<boolean>(false);
 
   useEffect(() => {
@@ -16,10 +31,12 @@ const AdvancedLogisticsPanel: React.FC<AdvancedLogisticsPanelProps> = ({ details
     const hash = details.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     setPinCode((hash % 9000 + 1000).toString());
 
-    // Simulate ETA countdown if out for delivery
+    // Update ETA based on the real-world daily specific time, not an indefinite countdown
     if (details.status.toLowerCase().includes('out for delivery')) {
+      // Update immediately
+      setEtaMinutes(calculateEta());
       const interval = setInterval(() => {
-        setEtaMinutes(prev => Math.max(0, prev - 1));
+        setEtaMinutes(calculateEta());
       }, 60000);
       return () => clearInterval(interval);
     }
@@ -47,8 +64,12 @@ const AdvancedLogisticsPanel: React.FC<AdvancedLogisticsPanelProps> = ({ details
               <p className="vehicle-info">White Ford Transit • XYZ-123</p>
             </div>
             <div className="eta-badge">
-              <span className="eta-time">{etaMinutes}</span>
-              <span className="eta-label">mins away</span>
+              <span className="eta-time">
+                {etaMinutes >= 60 ? `${Math.floor(etaMinutes / 60)}h ${etaMinutes % 60}m` : etaMinutes}
+              </span>
+              <span className="eta-label">
+                {etaMinutes >= 60 ? 'away' : 'mins away'}
+              </span>
             </div>
           </div>
           <div className="live-map-placeholder">

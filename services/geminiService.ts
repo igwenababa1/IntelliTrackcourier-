@@ -156,13 +156,20 @@ const THEMATIC_PROMPTS = [
 export async function generatePackageImage(itemDescription: string): Promise<string> {
     try {
         const brandName = "IntelliTrack";
-        // To make it functional, we use gemini-3.1-flash-image-preview to generate a specific image.
+        
+        let promptText = `A highly realistic, professional product photo of ${itemDescription} inside a high-tech shipping facility. The package or item prominently features a futuristic, glowing logo with the exact text "${brandName}". Cinematic lighting, 8k resolution, highly detailed.`;
+        
+        if (itemDescription.toLowerCase().includes('micro') || itemDescription.toLowerCase().includes('led') || itemDescription.toLowerCase().includes('panel')) {
+            promptText = `A hyper-realistic, dramatic photo of advanced global logistics and courier delivery focusing on a ${itemDescription}. The scene features a high-tech shipping warehouse or a futuristic courier vehicle handling delicate electronics. A specialized protective transport case or the courier's gear prominently displays the brand logo with the exact text "${brandName}". Cinematic lighting, 8k resolution, dynamic composition suitable for an elite shipping service.`;
+        }
+
+        // To make it functional, we use gemini-2.5-flash-image to generate a specific image.
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash-image',
           contents: {
             parts: [
               {
-                text: `A highly realistic, professional product photo of ${itemDescription} inside a high-tech shipping facility. The package or item prominently features a futuristic, glowing logo with the exact text "${brandName}". Cinematic lighting, 8k resolution, highly detailed.`,
+                text: promptText,
               },
             ],
           },
